@@ -34,7 +34,15 @@ cor2Color = [
     Color.WHITE,
 ]
 
-def calibrar(hub, sensor, botao_parar) -> tuple[rgb, rgb, rgb]:
+def norm_hsv(hsv):
+    if type(hsv) == Color:
+        h, s, v = hsv.h, hsv.s, hsv.v
+    else: #if type(hsv) == tuple:
+        h, s, v = hsv
+    return (h/360, s/100, v/100)
+
+
+def calibrar(hub, sensor, botao_parar) -> tuple[rgb, hsv, hsv]:
     wait(200)
 
     minm, maxm = (1, 1, 1), (0, 0, 0)
@@ -42,8 +50,8 @@ def calibrar(hub, sensor, botao_parar) -> tuple[rgb, rgb, rgb]:
     while botao_parar not in hub.buttons.pressed():
         hsv = sensor.hsv()
         hsv = hsv.h, hsv.s, hsv.v
-        
-        rgb_norm = hsv_to_rgb((hsv[0]/360, hsv[1]/100, hsv[2]/100))
+
+        rgb_norm = hsv_to_rgb(norm_hsv(hsv))
 
         minm = tuple(map(min, minm, hsv))
         maxm = tuple(map(max, maxm, hsv))
@@ -54,7 +62,7 @@ def calibrar(hub, sensor, botao_parar) -> tuple[rgb, rgb, rgb]:
         cor_txt_rgb = tuple(map("{:.2f}".format, rgb_norm))
         cor_txt_hsv = tuple(map("{:.2f}".format, hsv))
         print(cor_txt_hsv, cor_txt_rgb, "max:", maxm, "min:", minm)
-        
+
     med = tuple(map(lambda s: s/cont, soma))
     return (med, minm, maxm)
 
@@ -86,7 +94,7 @@ def identificar(rgb=None, hsv=None) -> cor:
     if   rgb is not None:
         hsv = rgb_to_hsv(rgb)
     elif hsv is not None:
-        rgb = hsv_to_rgb(hsv)
+        rgb = hsv_to_rgb(norm_hsv(hsv))
     else:
         raise ValueError("esperada cor de entrada")
 

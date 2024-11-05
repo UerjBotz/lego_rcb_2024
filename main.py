@@ -11,13 +11,13 @@ if id == ID.CABECA:
     
     hub.speaker.beep(frequency=500, duration=100)
     cabeca.main(hub)
-    hub.speaker.beep(frequency=250, duration=200)
+    hub.speaker.beep(frequency=250, duration=250)
 elif id == ID.BRACO:
     hub = braco.setup()
 
     hub.speaker.beep(frequency=500, duration=100)
     braco.main()
-    hub.speaker.beep(frequency=250, duration=200)
+    hub.speaker.beep(frequency=250, duration=250)
 
 elif id == ID.TESTE:
     from pybricks.hubs import PrimeHub
@@ -30,15 +30,7 @@ elif id == ID.TESTE:
     hub = PrimeHub()
     
     hub.speaker.beep(frequency=500, duration=100)
-    import cores
-    
-    cores.carregar_cores()
-    # print("cores:")
-    # for c in cores.cor:
-    #     c = cores.cor[c]
-    #     print(c, cores.mapa_rgb[c], cores.mapa_hsv[c])
-    
-    
+    ...
     hub.speaker.beep(frequency=250, duration=200)
 else:
     assert False

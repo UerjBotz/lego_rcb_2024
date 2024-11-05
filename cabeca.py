@@ -5,6 +5,8 @@ from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
 
+from urandom import choice
+
 import cores
 import gui
 
@@ -12,6 +14,8 @@ TAM_FAIXA = 30
 TAM_BLOCO   = 300
 TAM_BLOCO_Y = 294 #na nossa arena os quadrados não são 30x30cm (são 29.4 por quase 30)
 TAM_BLOCO_BECO = TAM_BLOCO_Y - TAM_FAIXA #os blocos dos becos são menores por causa do vermelho
+
+DIST_EIXO_SENSOR = 80 #mm
 
 def setup():
     global hub, sensor_cor_esq, sensor_cor_dir, rodas, botao_calibrar
@@ -55,17 +59,21 @@ def menu_calibracao(hub, sensor_cor, botao_parar=Button.BLUETOOTH,
             cores.salvar_cores()
             break
 
-DIST_EIXO_SENSOR = 80 #mm
-
-pista = lambda cor: ((cor == Color.WHITE) or
-                     (cor == Color.NONE ))
-parede= lambda cor: ((cor == Color.BLACK) or
-                     (cor == Color.YELLOW))
-beco  = lambda cor: ((cor == Color.RED))
+pista  = lambda cor: ((cor == Color.WHITE) or
+                      (cor == Color.NONE ))
+parede = lambda cor: ((cor == Color.BLACK) or
+                      (cor == Color.NONE ) or
+                      (cor == Color.YELLOW))
+beco   = lambda cor: ((cor == Color.RED))
 
 def dar_meia_volta():
     rodas.turn(180)
     rodas.straight(TAM_BLOCO)
+
+DIST_PARAR=-0.4
+def parar():
+    rodas.straight(DIST_PARAR)
+    rodas.stop()
 
 def achar_limite() -> tuple[Color, Color]:
     rodas.reset()
@@ -74,7 +82,7 @@ def achar_limite() -> tuple[Color, Color]:
         cor_dir = sensor_cor_dir.color()
         cor_esq = sensor_cor_esq.color()
         if not pista(cor_esq) or not pista(cor_dir):
-            rodas.stop(); break
+            parar(); break
 
     return (cor_esq, cor_dir)
 
@@ -86,45 +94,56 @@ def re_meio_bloco(eixo_menor=False):
 
 def achar_azul():
     cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
-    re_meio_bloco()
-
-    print(f"achar_azul:84: {cor_esq=}, {cor_dir=}")
 
     if   beco(cor_esq) or beco(cor_dir): #! beco é menor que os outros blocos
-        rodas.straight(-TAM_BLOCO_BECO) 
-        rodas.turn(90)
-        cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
-
         print(f"achar_azul:91: {cor_esq=}, {cor_dir=}")
+
+        re_meio_bloco()
+        rodas.straight(-TAM_BLOCO_BECO) 
+        rodas.turn(choice((90, -90)))
+
+        cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
+        print(f"achar_azul:97: {cor_esq=}, {cor_dir=}")
 
         if parede(cor_esq) or parede(cor_dir): rodas.turn(180)
 
         cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
+        print(f"achar_azul:105: {cor_esq=}, {cor_dir=}")
 
-        print(f"achar_azul:97: {cor_esq=}, {cor_dir=}")
-
-        return certificar_cor(sensor_cor_dir, sensor_cor_esq, cores.cor.AZUL)
+        return certificar_cor(sensor_cor_dir, sensor_cor_esq, Color.BLUE)
     elif parede(cor_esq) or parede(cor_dir):
-        print(f"achar_azul:104: {cor_esq=}, {cor_dir=}")
+        print(f"achar_azul:109: {cor_esq=}, {cor_dir=}")
+
+        re_meio_bloco()
         rodas.turn(90)
 
         return False
     else: #azul
-        cor_esq, cor_dir = sensor_cor_esq.color(), sensor_cor_dir.color()
+        print(f"achar_azul:114: {cor_esq=}, {cor_dir=}")
+
+        cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul:117: {cor_esq=}, {cor_dir=}")
 
-        return certificar_cor(sensor_cor_dir, sensor_cor_esq, cores.cor.AZUL)
+        if certificar_cor(sensor_cor_dir, sensor_cor_esq, Color.BLUE):
+            return True
+        else:
+            re_meio_bloco()
+            rodas.turn(90)
+            return False
 
-
-
-def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None):
+def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None,
+                   num_amostras=41):
     cor2 = cor if cor2 is None else cor2
 
-    tam_lista = 11
-    esqs = [cores.Color2cor[sensor_esq.color()] for _ in range(tam_lista)]; esqs.sort()
-    dirs = [cores.Color2cor[sensor_dir.color()] for _ in range(tam_lista)]; dirs.sort()
-    mediana_esq = esqs[tam_lista//2]
-    mediana_dir = dirs[tam_lista//2]
+    esqs = sorted([sensor_esq.color()
+                   for _ in range(num_amostras)], key=lambda c: c.h)
+    dirs = sorted([sensor_dir.color()
+                   for _ in range(num_amostras)], key=lambda c: c.h)
+
+    mediana_esq = esqs[num_amostras//2]
+    mediana_dir = dirs[num_amostras//2]
+
+    print(f"certificar_cor:143: dir {mediana_dir}, esq {mediana_esq}")
 
     if mediana_esq == mediana_dir:
         mediana = mediana_esq
@@ -140,15 +159,14 @@ def alinhar():
 
 def main(hub):
     crono = StopWatch()
-    while True:
+    while crono.time() < 1000:
         botões = hub.buttons.pressed()
         if botao_calibrar in botões:
             hub.speaker.beep(frequency=300, duration=100)
             menu_calibracao(hub, sensor_cor_esq)  #! levar os dois sensores em consideração
-
             return
-        elif crono.time() > 400:
-            if achar_azul():
-                return #!
-
-
+    hub.system.set_stop_button((Button.BLUETOOTH,))
+    hub.speaker.beep(frequency=600, duration=100)
+    while True:
+        achou = achar_azul()
+        if achou: return #!
