@@ -1,5 +1,5 @@
 from pybricks.tools      import wait
-from pybricks.parameters import Button
+from pybricks.parameters import Color
 
 from umath import sqrt
 from polyfill import Enum, rgb_to_hsv, hsv_to_rgb
@@ -14,23 +14,36 @@ cor = Enum("cor", ["AMARELO",
                    "PRETO",
                    "BRANCO"])
 
-def calibrar(hub, sensor, botao_parar, ev3=None, spike=True) -> tuple[rgb, rgb, rgb]:
+Color2cor = {
+    Color.YELLOW: cor.AMARELO,
+    Color.GREEN:  cor.VERDE, 
+    Color.BLUE:   cor.AZUL,
+    Color.RED:    cor.VERMELHO,
+    Color.BROWN:  cor.MARROM,
+    Color.BLACK:  cor.PRETO,
+    Color.WHITE:  cor.BRANCO,
+}
+
+cor2Color = [
+    Color.YELLOW,
+    Color.GREEN,
+    Color.BLUE,
+    Color.RED,
+    Color.BROWN,
+    Color.BLACK,
+    Color.WHITE,
+]
+
+def calibrar(hub, sensor, botao_parar) -> tuple[rgb, rgb, rgb]:
     wait(200)
 
     minm, maxm = (1, 1, 1), (0, 0, 0)
     soma, cont = (0, 0, 0), 0
     while botao_parar not in hub.buttons.pressed():
-        if   ev3:
-            rgb = sensor.rgb()
-            rgb_norm = tuple(map(lambda pct: pct/100, rgb)) #! ver
-            hsv = rgb_to_hsv(rgb_norm) #! ver
-        elif spike:
-            hsv = sensor.hsv()
-            hsv = hsv.h, hsv.s, hsv.v
-            
-            rgb_norm = hsv_to_rgb((hsv[0]/360, hsv[1]/100, hsv[2]/100))
-        else:
-            raise Exception("hub inválido")
+        hsv = sensor.hsv()
+        hsv = hsv.h, hsv.s, hsv.v
+        
+        rgb_norm = hsv_to_rgb((hsv[0]/360, hsv[1]/100, hsv[2]/100))
 
         minm = tuple(map(min, minm, hsv))
         maxm = tuple(map(max, maxm, hsv))
@@ -51,7 +64,7 @@ def identificar_cor_hsv(hsv) -> cor:
         hm, _, _ = m
         hM, _, _ = M
 
-        if h in range(m, M): return i
+        if h in range(hm, hM): return i
 
 def dist(cor1, cor2) -> float:
     #! tem que ver se faz sentido usar com hsv também, mas a conta funciona
@@ -65,8 +78,7 @@ def identificar_cor_dist(rgb) -> cor:
     for i, cor_canonica in enumerate(mapa_rgb):
         d = dist(rgb, cor_canonica)
         if d < min_dist:
-            min_dist = d
-            min_idx  = i
+            min_dist, min_idx = d, i
 
     return min_idx
 
@@ -78,8 +90,7 @@ def identificar(rgb=None, hsv=None) -> cor:
     else:
         raise ValueError("esperada cor de entrada")
 
-    return identificar_cor_dist(rgb) #ou identificar_cor_hsv(hsv)
-
+    return identificar_cor_hsv(hsv) #ou identificar_cor_dist(rgb)
 
 def salvar_cores():
     global mapa_rgb, mapa_hsv
