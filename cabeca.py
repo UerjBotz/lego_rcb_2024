@@ -1,6 +1,6 @@
 from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor, ColorSensor
-from pybricks.parameters import Port, Stop, Direction, Button, Color
+from pybricks.parameters import Port, Stop, Side, Direction, Button, Color
 
 from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
@@ -33,6 +33,7 @@ def setup():
 
     botao_calibrar = Button.CENTER
 
+    hub.display.orientation(Side.BOTTOM)
     hub.system.set_stop_button((Button.CENTER, Button.BLUETOOTH))
     return hub
 
@@ -42,6 +43,7 @@ def menu_calibracao(hub, sensor_cor, botao_parar=Button.BLUETOOTH,
                                      botao_proximo=Button.RIGHT):
     selecao = 0
 
+    wait(150)
     while True:
         botões = gui.tela_escolher_cor(hub, cores.cor, selecao)
         
@@ -51,7 +53,7 @@ def menu_calibracao(hub, sensor_cor, botao_parar=Button.BLUETOOTH,
             selecao = (selecao - 1) % len(cores.cor)
 
         elif botao_aceitar in botões:
-            hub.display.text("CALIBRANDO...")
+            [wait(100) for _ in gui.mostrar_palavra(hub, "CAL...")]
             cores.mapa_rgb[selecao], *cores.mapa_hsv[selecao] = (
                 cores.calibrar(hub, sensor_cor, botao_aceitar)
             )
@@ -165,6 +167,7 @@ def main(hub):
             hub.speaker.beep(frequency=300, duration=100)
             menu_calibracao(hub, sensor_cor_esq)  #! levar os dois sensores em consideração
             return
+
     hub.system.set_stop_button((Button.BLUETOOTH,))
     hub.speaker.beep(frequency=600, duration=100)
     while True:
