@@ -41,6 +41,8 @@ def menu_calibracao(hub, sensor_cor, botao_parar=Button.BLUETOOTH,
                                      botao_aceitar=Button.CENTER,
                                      botao_anterior=Button.LEFT,
                                      botao_proximo=Button.RIGHT):
+    mapa_hsv = cores.mapa_hsv.copy()
+
     selecao = 0
 
     wait(150)
@@ -49,17 +51,21 @@ def menu_calibracao(hub, sensor_cor, botao_parar=Button.BLUETOOTH,
         
         if   botao_proximo  in botões:
             selecao = (selecao + 1) % len(cores.cor)
+            wait(100)
         elif botao_anterior in botões:
             selecao = (selecao - 1) % len(cores.cor)
+            wait(100)
 
         elif botao_aceitar in botões:
             [wait(100) for _ in gui.mostrar_palavra(hub, "CAL...")]
-            cores.mapa_rgb[selecao], *cores.mapa_hsv[selecao] = (
-                cores.calibrar(hub, sensor_cor, botao_aceitar)
+            mapa_hsv[selecao] = (
+                cores.coletar_valores(hub, sensor_cor, botao_aceitar)
             )
+            wait(150)
         elif botao_parar   in botões:
-            cores.salvar_cores()
-            break
+            wait(100)
+            return mapa_hsv
+
 
 pista  = lambda cor: ((cor == Color.WHITE) or
                       (cor == Color.NONE ))
@@ -133,28 +139,15 @@ def achar_azul():
             rodas.turn(90)
             return False
 
-def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None,
-                   num_amostras=41):
-    cor2 = cor if cor2 is None else cor2
+def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None):
+    cor2 = cor if cor2 is None else cor2 #! levar em consideração
 
-    esqs = sorted([sensor_esq.color()
-                   for _ in range(num_amostras)], key=lambda c: c.h)
-    dirs = sorted([sensor_dir.color()
-                   for _ in range(num_amostras)], key=lambda c: c.h)
+    cor_dir = cores.identificar(sensor_dir.hsv())
+    cor_esq = cores.identificar(sensor_esq.hsv())
+    print(f"certificar_cor:148: {cores.cor(cor_esq)}, {cores.cor(cor_dir)}")
 
-    mediana_esq = esqs[num_amostras//2]
-    mediana_dir = dirs[num_amostras//2]
-
-    print(f"certificar_cor:143: dir {mediana_dir}, esq {mediana_esq}")
-
-    if mediana_esq == mediana_dir:
-        mediana = mediana_esq
-        return mediana == cor == cor2
-
-    if (mediana_esq == cor) or (mediana_dir == cor2):
-        return True
-
-    return False
+    return ((cor_dir == cores.Color2cor[cor]) or
+            (cor_esq == cores.Color2cor[cor]))
 
 def alinhar():
     pass
@@ -165,7 +158,10 @@ def main(hub):
         botões = hub.buttons.pressed()
         if botao_calibrar in botões:
             hub.speaker.beep(frequency=300, duration=100)
-            menu_calibracao(hub, sensor_cor_esq)  #! levar os dois sensores em consideração
+
+            #! levar os dois sensores em consideração
+            mapa_hsv = menu_calibracao(hub, sensor_cor_esq)
+            cores.repl_calibracao(mapa_hsv)#, lado="esq")
             return
 
     hub.system.set_stop_button((Button.BLUETOOTH,))
