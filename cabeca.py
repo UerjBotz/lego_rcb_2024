@@ -1,9 +1,12 @@
 from pybricks.hubs import PrimeHub
+
 from pybricks.pupdevices import Motor, ColorSensor
 from pybricks.parameters import Port, Stop, Direction, Button, Color
 
 from pybricks.tools      import wait, StopWatch
 from pybricks.robotics   import DriveBase
+
+from bluetooth import comando_bt, TX_BRACO, TX_CABECA
 
 import cores
 import gui
@@ -16,7 +19,7 @@ TAM_BLOCO_BECO = TAM_BLOCO_Y - TAM_FAIXA #os blocos dos becos são menores por c
 def setup():
     global hub, sensor_cor_esq, sensor_cor_dir, rodas, botao_calibrar
     
-    hub = PrimeHub()
+    hub = PrimeHub(broadcast_channel=1, observe_channels=[2])
 
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
@@ -115,8 +118,6 @@ def achar_azul():
 
         return certificar_cor(sensor_cor_dir, sensor_cor_esq, cores.cor.AZUL)
 
-
-
 def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None):
     cor2 = cor if cor2 is None else cor2
 
@@ -138,6 +139,24 @@ def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None):
 def alinhar():
     pass
 
+def mandar_fechar_garra():
+    hub.ble.broadcast((comando_bt.fecha_garra,))
+    comando = -1
+    while comando != comando_bt.fechei:
+        comando = hub.ble.observe(TX_BRACO)
+        if comando is not None:
+            comando, *args = comando
+        else: continue
+
+def mandar_abrir_garra():
+    hub.ble.broadcast((comando_bt.abre_garra,))
+    comando = -1
+    while comando != comando_bt.abri:
+        comando = hub.ble.observe(TX_BRACO)
+        if comando is not None:
+            comando, *args = comando
+        else: continue
+
 def main(hub):
     crono = StopWatch()
     while True:
@@ -150,5 +169,4 @@ def main(hub):
         elif crono.time() > 400:
             if achar_azul():
                 return #!
-
-
+            

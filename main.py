@@ -4,7 +4,7 @@ import braco
 from polyfill import Enum
 
 ID = Enum("ID", ["BRACO", "CABECA", "TESTE"])
-id = ID.CABECA
+id = ID.BRACO
 
 if id == ID.CABECA:
     hub = cabeca.setup()
@@ -16,7 +16,7 @@ elif id == ID.BRACO:
     hub = braco.setup()
 
     hub.speaker.beep(frequency=500, duration=100)
-    braco.main()
+    braco.main(hub)
     hub.speaker.beep(frequency=250, duration=200)
 
 elif id == ID.TESTE:
