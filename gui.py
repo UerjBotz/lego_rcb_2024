@@ -2,73 +2,94 @@ from pybricks.tools import StopWatch, wait
 from pybricks.parameters import Color
 
 _ = 0
-I = 100
+H = 100
 
-letras = dict(
-    A=[
-        [ _, I, I, _, ], 
-        [ I, _, _, I, ], 
-        [ I, I, I, I, ], 
-        [ I, _, _, I, ], 
-        [ I, _, _, I, ],
+letras = {
+    "A": [
+        [ _, H, H, _, ], 
+        [ H, _, _, H, ], 
+        [ H, H, H, H, ], 
+        [ H, _, _, H, ], 
+        [ H, _, _, H, ],
     ],
-    M=[
-        [ I, _, _, _, I, ],
-        [ I, I, _, I, I, ],
-        [ I, _, I, _, I, ],
-        [ I, _, _, _, I, ],
-        [ I, _, _, _, I, ],
+    "M": [
+        [ H, _, _, _, H, ],
+        [ H, H, _, H, H, ],
+        [ H, _, H, _, H, ],
+        [ H, _, _, _, H, ],
+        [ H, _, _, _, H, ],
     ],
-    V=[
-        [ I, _, _, _, I, ],
-        [ I, _, _, _, I, ],
-        [ I, _, _, _, I, ],
-        [ _, I, _, I, _, ],
-        [ _, _, I, _, _, ],
+    "V": [
+        [ H, _, _, _, H, ],
+        [ H, _, _, _, H, ],
+        [ H, _, _, _, H, ],
+        [ _, H, _, H, _, ],
+        [ _, _, H, _, _, ],
     ],
-    Z=[
-        [ I, I, I, I, ],
-        [ _, _, _, I, ],
-        [ _, _, I, _, ],
-        [ _, I, _, _, ],
-        [ I, I, I, I, ],
+    "Z": [
+        [ H, H, H, H, ],
+        [ _, _, _, H, ],
+        [ _, _, H, _, ],
+        [ _, H, _, _, ],
+        [ H, H, H, H, ],
     ],
-    D=[
-        [ I, I, I, _, ],
-        [ I, _, _, I, ],
-        [ I, _, _, I, ],
-        [ I, _, _, I, ],
-        [ I, I, I, _, ],
+    "D": [
+        [ H, H, H, _, ],
+        [ H, _, _, H, ],
+        [ H, _, _, H, ],
+        [ H, _, _, H, ],
+        [ H, H, H, _, ],
     ],
-    P=[
-        [ I, I, I, _, ],
-        [ I, _, _, I, ],
-        [ I, I, I, _, ],
-        [ I, _, _, _, ],
-        [ I, _, _, _, ],
+    "P": [
+        [ H, H, H, _, ],
+        [ H, _, _, H, ],
+        [ H, H, H, _, ],
+        [ H, _, _, _, ],
+        [ H, _, _, _, ],
     ],
-    B=[
-        [ I, I, I, _, ],
-        [ I, _, _, I, ],
-        [ I, I, I, _, ],
-        [ I, _, _, I, ],
-        [ I, I, I, _, ],
+    "B": [
+        [ H, H, H, _, ],
+        [ H, _, _, H, ],
+        [ H, H, H, _, ],
+        [ H, _, _, H, ],
+        [ H, H, H, _, ],
     ],
-    R=[
-        [ I, I, I, _, ],
-        [ I, _, _, I, ],
-        [ I, I, I, _, ],
-        [ I, _, _, I, ],
-        [ I, _, _, I, ],
+    "R": [
+        [ H, H, H, _, ],
+        [ H, _, _, H, ],
+        [ H, H, H, _, ],
+        [ H, _, _, H, ],
+        [ H, _, _, H, ],
     ],
-    ESP=[
-        [ _, _, _, _, ],
-        [ _, _, _, _, ],
-        [ _, _, _, _, ],
-        [ _, _, _, _, ],
-        [ _, _, _, _, ],
-    ]
-)
+    "C": [
+        [ _, H, H, ],
+        [ H, _, _, ],
+        [ H, _, _, ],
+        [ H, _, _, ],
+        [ _, H, H, ],
+    ],
+    "L": [
+        [ H, _, _, ],
+        [ H, _, _, ],
+        [ H, _, _, ],
+        [ H, _, _, ],
+        [ H, H, H, ],
+    ],
+    ".": [
+        [ _, _, ],
+        [ _, _, ],
+        [ _, _, ],
+        [ _, _, ],
+        [ H, _, ],
+    ],
+    "nul": [
+        [ _, _, ],
+        [ _, _, ],
+        [ _, _, ],
+        [ _, _, ],
+        [ _, _, ],
+    ],
+}
 
 palavras = dict(
     AMARELO="AM",
@@ -100,8 +121,9 @@ def concatena_letras(*letras):
 def passo_anim(palavra, i):
     return [r[i:i+5] for r in palavra]
 
-def mostrar_cor(hub, nome):
-    mat = concatena_letras(*(letras[l] for l in palavras[nome]))
+def mostrar_palavra(hub, nome):
+    mat = concatena_letras(*(letras.get(letra) or letras["nul"]
+                             for letra in palavras.get(nome) or nome))
     for i in range(len(mat[0])):        
         m = passo_anim(mat, i)
         if len(m[0]) < QTD_LINHAS:
@@ -113,7 +135,7 @@ def tela_escolher_cor(hub, enum_cor, selecao, intervalo_anim=110, intervalo_bota
     cor = enum_cor(selecao)
     sw = StopWatch()
     
-    for _ in mostrar_cor(hub, cor):
+    for _ in mostrar_palavra(hub, cor):
         sw.reset()
         hub.light.on(cor2Color[selecao])
         while sw.time() < intervalo_anim:
