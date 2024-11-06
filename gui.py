@@ -108,6 +108,7 @@ cor2Color = [
     Color.BROWN,
     Color.BLACK,
     Color.WHITE,
+    Color.NONE,
 ]
 
 QTD_LINHAS = 5
