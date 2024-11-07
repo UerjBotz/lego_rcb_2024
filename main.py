@@ -4,7 +4,7 @@ import braco
 from polyfill import Enum
 
 ID = Enum("ID", ["BRACO", "CABECA", "TESTE"])
-id = ID.BRACO
+id = ID.CABECA
 
 if id == ID.CABECA:
     hub = cabeca.setup()

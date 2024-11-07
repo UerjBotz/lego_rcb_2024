@@ -85,6 +85,11 @@ def parar():
     rodas.straight(DIST_PARAR)
     rodas.stop()
 
+ANG_PARAR=-0.0
+def parar_girar():
+    rodas.turn(ANG_PARAR)
+    rodas.stop()
+
 def achar_limite() -> tuple[Color, Color]:
     rodas.reset()
     rodas.straight(TAM_BLOCO*6, wait=False)
@@ -111,6 +116,7 @@ def achar_azul():
         re_meio_bloco()
         rodas.straight(-TAM_BLOCO_BECO) 
         rodas.turn(choice((90, -90)))
+        
 
         cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul:97: {cor_esq=}, {cor_dir=}")
@@ -154,7 +160,32 @@ def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None):
             (cor_esq == cores.Color2cor[cor]))
 
 def alinhar():
-    pass
+    while True:
+        cor_dir = sensor_cor_dir.color()
+        cor_esq = sensor_cor_esq.color()
+        ang_girado = 0.0
+        dist_percorrida = 0.0
+        #PRINTAR CORES
+        rodas.straight(TAM_BLOCO, wait=False)
+
+        if not pista(cor_esq) or not pista(cor_dir):
+            parar()
+            dist_percorrida = rodas.distance()
+            if not pista(cor_esq) and not pista(cor_dir):
+                print("ENTREI RETO")
+                rodas.straight(-dist_percorrida, wait=True)
+                return True
+            else:
+                print("ENTREI TORTO")
+                rodas.turn(90, wait=False)
+                if cor_dir == cor_esq:
+                    parar_girar()
+                    ang_girado = rodas.angle()
+                    rodas.turn(-ang_girado, wait=True)
+                    rodas.straight(-dist_percorrida, wait=True)                
+                    rodas.turn(ang_girado, wait=True)
+                    return True 
+
 
 def mandar_fechar_garra():
     hub.ble.broadcast((comando_bt.fecha_garra,))
@@ -188,6 +219,9 @@ def main(hub):
 
     hub.system.set_stop_button((Button.BLUETOOTH,))
     hub.speaker.beep(frequency=600, duration=100)
+    while True:
+        alinhou = alinhar()
+        if alinhou: return
     while True:
         achou = achar_azul()
         if achou: return #!
