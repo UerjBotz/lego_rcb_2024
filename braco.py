@@ -27,9 +27,9 @@ def setup():
 def main(hub):
     #contador_msgs = 0
     while True:
-        #id_msg, 
         comando = hub.ble.observe(TX_CABECA)
         if comando is not None:
+            #id_msg, 
             comando, *args = comando
         else: continue
 
