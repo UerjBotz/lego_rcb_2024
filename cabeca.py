@@ -163,10 +163,16 @@ def alinhar():
     while True:
         cor_dir = sensor_cor_dir.color()
         cor_esq = sensor_cor_esq.color()
+        print(cor_dir, cor_esq)
+
         ang_girado = 0.0
         dist_percorrida = 0.0
-        #PRINTAR CORES
-        rodas.straight(TAM_BLOCO, wait=False)
+        rodas.straight(TAM_BLOCO/10, wait=False)
+        if rodas.distance() > TAM_BLOCO*4//5:
+            rodas.straight(-rodas.distance(), wait=True)
+            rodas.turn(90)
+            rodas.reset()
+            continue
 
         if not pista(cor_esq) or not pista(cor_dir):
             parar()
@@ -177,14 +183,20 @@ def alinhar():
                 return True
             else:
                 print("ENTREI TORTO")
-                rodas.turn(90, wait=False)
-                if cor_dir == cor_esq:
+                rodas.turn(-90, wait=False)
+                cor_dir = sensor_cor_dir.color()
+                cor_esq = sensor_cor_esq.color()
+                if not (pista(cor_dir) ^ pista(cor_esq)):
+                    print("cor_igual")
                     parar_girar()
                     ang_girado = rodas.angle()
                     rodas.turn(-ang_girado, wait=True)
                     rodas.straight(-dist_percorrida, wait=True)                
                     rodas.turn(ang_girado, wait=True)
-                    return True 
+
+                    rodas.turn(90)
+                    rodas.reset()
+                    return alinhar()
 
 
 def mandar_fechar_garra():
@@ -219,9 +231,10 @@ def main(hub):
 
     hub.system.set_stop_button((Button.BLUETOOTH,))
     hub.speaker.beep(frequency=600, duration=100)
+    alinhou = False
     while True:
-        alinhou = alinhar()
-        if alinhou: return
-    while True:
+        if not alinhou:
+            alinhou = alinhar()
+            continue
         achou = achar_azul()
         if achou: return #!
