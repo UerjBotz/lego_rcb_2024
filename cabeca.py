@@ -20,7 +20,9 @@ TAM_FAIXA = 30
 TAM_BLOCO_BECO = TAM_BLOCO_Y - TAM_FAIXA # os blocos dos becos são menores por causa do vermelho
 
 DIST_EIXO_SENSOR = 80 #mm
+DIST_EIXO_SENS_DIST = 45 #mm   #! checar
 
+DIST_PASSAGEIRO_RUA = 220 #! checar
 
 def setup():
     global hub, sensor_cor_esq, sensor_cor_dir, rodas, botao_calibrar
@@ -95,6 +97,11 @@ def parar():
     rodas.straight(DIST_PARAR)
     rodas.stop()
 
+ANG_PARAR=-0.0
+def parar_girar():
+    rodas.turn(ANG_PARAR)
+    rodas.stop()
+
 def achar_limite() -> tuple[Color, Color]:
     rodas.reset()
     rodas.straight(TAM_BLOCO*6, wait=False)
@@ -123,6 +130,7 @@ def achar_azul():
         re_meio_bloco()
         rodas.straight(-TAM_BLOCO_BECO) 
         rodas.turn(choice((90, -90)))
+        
 
         cor_esq, hsv_esq, cor_dir, hsv_dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul:97: {cor_esq=}, {cor_dir=}")
@@ -164,7 +172,44 @@ def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None):
             (cor_esq == cores.Color2cor[cor]))
 
 def alinhar():
-    pass
+    while True:
+        cor_dir = sensor_cor_dir.color()
+        cor_esq = sensor_cor_esq.color()
+        print(cor_dir, cor_esq)
+
+        ang_girado = 0.0
+        dist_percorrida = 0.0
+        rodas.straight(TAM_BLOCO/10, wait=False)
+        if rodas.distance() > TAM_BLOCO*4//5:
+            rodas.straight(-rodas.distance(), wait=True)
+            rodas.turn(90)
+            rodas.reset()
+            continue
+
+        if not pista(cor_esq) or not pista(cor_dir):
+            parar()
+            dist_percorrida = rodas.distance()
+            if not pista(cor_esq) and not pista(cor_dir):
+                print("ENTREI RETO")
+                rodas.straight(-dist_percorrida, wait=True)
+                return True
+            else:
+                print("ENTREI TORTO")
+                rodas.turn(-90, wait=False)
+                cor_dir = sensor_cor_dir.color()
+                cor_esq = sensor_cor_esq.color()
+                if not (pista(cor_dir) ^ pista(cor_esq)):
+                    print("cor_igual")
+                    parar_girar()
+                    ang_girado = rodas.angle()
+                    rodas.turn(-ang_girado, wait=True)
+                    rodas.straight(-dist_percorrida, wait=True)                
+                    rodas.turn(ang_girado, wait=True)
+
+                    rodas.turn(90)
+                    rodas.reset()
+                    return alinhar()
+
 
 def mandar_fechar_garra():
     hub.ble.broadcast((comando_bt.fecha_garra,))
@@ -184,22 +229,101 @@ def mandar_abrir_garra():
             comando, *args = comando
         else: continue
 
+def esperar_resposta(esperado):
+    comando = -1
+    while comando != esperado:
+        comando = hub.ble.observe(TX_BRACO)
+        if comando is not None:
+            comando, *args = comando
+    return args
+
+def fechar_garra():
+    hub.ble.broadcast((comando_bt.fecha_garra,))
+    return esperar_resposta(comando_bt.fechei)
+
+def abrir_garra():
+    hub.ble.broadcast((comando_bt.abre_garra,))
+    return esperar_resposta(comando_bt.abri)
+
+def ver_cor_passageiro():
+    hub.ble.broadcast((comando_bt.ver_cor_passageiro,))
+    return esperar_resposta(comando_bt.cor_passageiro)
+
+def ver_distancias():
+    hub.ble.broadcast((comando_bt.ver_distancias,))
+    return esperar_resposta(comando_bt.distancias)
+
+def pegar_primeiro_passageiro():
+    #! a cor é pra ser azul
+    _, *conf_resto = conf_anterior = rodas.settings()
+
+    vel, conf_atual = 50, conf_resto
+
+    rodas.turn(90)
+    print("213: procurando vermelho")
+    achar_limite() # anda reto até achar o limite
+    #! a cor é pra ser vermelha
+
+    rodas.turn(180)
+
+    print("223: indo andar")
+    rodas.settings(vel, *conf_atual)
+    rodas.reset()
+    rodas.straight(TAM_BLOCO*4, wait=False)
+    while not rodas.done():
+        cor_esq, cor_dir = sensor_cor_esq.color(), sensor_cor_dir.color()
+        if not pista(cor_esq) or not pista(cor_dir):
+            print("227: não branco")
+            parar()
+            print("230: vou dar ré")
+            re_meio_bloco()
+            #! a cor é pra ser vermelha
+            break
+        else:
+            print("227: branco")
+
+        dist_esq, dist_dir = ver_distancias()
+        print(f"237: {dist_esq=} {dist_dir=}")
+
+        if (dist_esq < DIST_PASSAGEIRO_RUA) or (dist_dir < DIST_PASSAGEIRO_RUA):
+            dist = dist_esq if dist_esq < dist_dir else dist_dir
+            print(f"235: passageiro")
+            parar()
+            rodas.straight(-(DIST_EIXO_SENS_DIST-20)) #! desmagificar
+            rodas.turn(90)
+            print(f"243: abrindo_garra")
+            abrir_garra()
+            rodas.straight(dist)
+            print(f"243: fechando_garra")
+            fechar_garra()
+            break
+        print("250: fimloop")
+    print("250: saindo")
+    rodas.settings(*conf_anterior)
+
 def main(hub):
     crono = StopWatch()
-    while crono.time() < 5000:
+    while crono.time() < 0: #! desativado
         botões = hub.buttons.pressed()
         if botao_calibrar in botões:
             hub.speaker.beep(frequency=300, duration=100)
-
-            #! levar os dois sensores em consideração
+            #! levar os dois sensores em consideração separadamente
             mapa_hsv = menu_calibracao(hub, sensor_cor_esq, sensor_cor_dir)
             cores.repl_calibracao(mapa_hsv)#, lado="esq")
             return
 
     hub.system.set_stop_button((Button.BLUETOOTH,))
     hub.speaker.beep(frequency=600, duration=100)
+
+    alinhou = False
     #! antes de qualquer coisa, era bom ver se na sua frente tem obstáculo
     #! sobre isso ^ ainda, tem que tomar cuidado pra não confundir eles com os passageiros
     while True:
+        if not alinhou:
+            alinhou = alinhar()
+            continue
         achou = achar_azul()
-        if achou: return #!
+        if achou:
+            pegar_primeiro_passageiro()
+            abrir_garra()
+        return

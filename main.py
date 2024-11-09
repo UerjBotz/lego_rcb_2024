@@ -20,6 +20,7 @@ elif id == ID.BRACO:
 
 elif id == ID.TESTE:
     from pybricks.hubs import PrimeHub
+
     from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
 
     from pybricks.parameters import Port, Axis, Stop, Direction, Button, Color
