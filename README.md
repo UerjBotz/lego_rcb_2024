@@ -1,4 +1,4 @@
-# Carcará Branco
+# Carcará Branco / Carrara Táxi Carrara
 
 Repositório criado para o desafio RCB Challenge Kit da CBR 2024 (antigo SEK).
 

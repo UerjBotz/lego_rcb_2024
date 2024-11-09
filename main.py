@@ -1,18 +1,17 @@
-import cabeca
-import braco
-
 from polyfill import Enum
 
 ID = Enum("ID", ["BRACO", "CABECA", "TESTE"])
 id = ID.CABECA
 
 if id == ID.CABECA:
+    import cabeca
     hub = cabeca.setup()
     
     hub.speaker.beep(frequency=500, duration=100)
     cabeca.main(hub)
     hub.speaker.beep(frequency=250, duration=250)
 elif id == ID.BRACO:
+    import braco
     hub = braco.setup()
 
     hub.speaker.beep(frequency=500, duration=100)

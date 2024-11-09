@@ -12,10 +12,12 @@ from urandom import choice
 import cores
 import gui
 
-TAM_FAIXA = 30
+
 TAM_BLOCO   = 300
-TAM_BLOCO_Y = 294 #na nossa arena os quadrados não são 30x30cm (são 29.4 por quase 30)
-TAM_BLOCO_BECO = TAM_BLOCO_Y - TAM_FAIXA #os blocos dos becos são menores por causa do vermelho
+TAM_BLOCO_Y = 294 # na nossa arena os quadrados não são 30x30cm (são 29.4 por quase 30)
+
+TAM_FAIXA = 30
+TAM_BLOCO_BECO = TAM_BLOCO_Y - TAM_FAIXA # os blocos dos becos são menores por causa do vermelho
 
 DIST_EIXO_SENSOR = 80 #mm
 
@@ -23,7 +25,10 @@ DIST_EIXO_SENSOR = 80 #mm
 def setup():
     global hub, sensor_cor_esq, sensor_cor_dir, rodas, botao_calibrar
     
-    hub = PrimeHub(broadcast_channel=1, observe_channels=[2])
+    hub = PrimeHub(broadcast_channel=TX_CABECA, observe_channels=[TX_BRACO])
+
+    hub.display.orientation(Side.BOTTOM)
+    hub.system.set_stop_button((Button.CENTER, Button.BLUETOOTH))
 
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
@@ -36,11 +41,10 @@ def setup():
 
     botao_calibrar = Button.CENTER
 
-    hub.display.orientation(Side.BOTTOM)
-    hub.system.set_stop_button((Button.CENTER, Button.BLUETOOTH))
     return hub
 
-def menu_calibracao(hub, sensor_cor, botao_parar=Button.BLUETOOTH,
+def menu_calibracao(hub, sensor_esq, sensor_dir,
+                                     botao_parar=Button.BLUETOOTH,
                                      botao_aceitar=Button.CENTER,
                                      botao_anterior=Button.LEFT,
                                      botao_proximo=Button.RIGHT):
@@ -62,7 +66,7 @@ def menu_calibracao(hub, sensor_cor, botao_parar=Button.BLUETOOTH,
         elif botao_aceitar in botões:
             [wait(100) for _ in gui.mostrar_palavra(hub, "CAL...")]
             mapa_hsv[selecao] = (
-                cores.coletar_valores(hub, sensor_cor, botao_aceitar)
+                cores.coletar_valores(hub, botao_aceitar, dir=sensor_dir, esq=sensor_esq)
             )
             wait(150)
         elif botao_parar   in botões:
@@ -75,6 +79,12 @@ parede = lambda cor: ((cor == Color.BLACK) or
                       (cor == Color.NONE ) or
                       (cor == Color.YELLOW))
 beco   = lambda cor: ((cor == Color.RED))
+
+pista_hsv  = lambda hsv: ((cores.identificar(hsv) == cores.cor.BRANCO) or
+                          (cores.identificar(hsv) == cores.cor.NENHUMA))
+parede_hsv = lambda hsv: ((cores.identificar(hsv) == cores.cor.PRETO) or
+                          (cores.identificar(hsv) == cores.cor.AMARELO) or
+                          (cores.identificar(hsv) == cores.cor.NENHUMA))
 
 def dar_meia_volta():
     rodas.turn(180)
@@ -94,12 +104,14 @@ def achar_limite() -> tuple[Color, Color]:
     rodas.reset()
     rodas.straight(TAM_BLOCO*6, wait=False)
     while not rodas.done():
-        cor_dir = sensor_cor_dir.color()
         cor_esq = sensor_cor_esq.color()
+        cor_dir = sensor_cor_dir.color()
         if not pista(cor_esq) or not pista(cor_dir):
             parar(); break
 
-    return (cor_esq, cor_dir)
+    hsv_esq = sensor_cor_esq.hsv()
+    hsv_dir = sensor_cor_dir.hsv()
+    return (cor_esq, hsv_esq, cor_dir, hsv_dir)
 
 def re_meio_bloco(eixo_menor=False):
     if eixo_menor:
@@ -108,7 +120,7 @@ def re_meio_bloco(eixo_menor=False):
         rodas.straight(-(TAM_BLOCO//2 - DIST_EIXO_SENSOR), wait=True)
 
 def achar_azul():
-    cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
+    cor_esq, hsv_esq, cor_dir, hsv_dir = achar_limite() # anda reto até achar o limite
 
     if   beco(cor_esq) or beco(cor_dir): #! beco é menor que os outros blocos
         print(f"achar_azul:91: {cor_esq=}, {cor_dir=}")
@@ -118,17 +130,16 @@ def achar_azul():
         rodas.turn(choice((90, -90)))
         
 
-        cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
+        cor_esq, hsv_esq, cor_dir, hsv_dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul:97: {cor_esq=}, {cor_dir=}")
 
-        if parede(cor_esq) or parede(cor_dir): rodas.turn(180)
+        if parede_hsv(hsv_esq) or parede_hsv(hsv_dir): rodas.turn(180)
 
-        cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
-
+        cor_esq, hsv_esq, cor_dir, hsv_dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul:105: {cor_esq=}, {cor_dir=}")
 
         return certificar_cor(sensor_cor_dir, sensor_cor_esq, Color.BLUE)
-    elif parede(cor_esq) or parede(cor_dir):
+    elif parede(cor_esq) or parede(cor_dir): #! hsv
         print(f"achar_azul:109: {cor_esq=}, {cor_dir=}")
 
         re_meio_bloco()
@@ -139,7 +150,7 @@ def achar_azul():
     else: #azul
         print(f"achar_azul:114: {cor_esq=}, {cor_dir=}")
 
-        cor_esq, cor_dir = achar_limite() # anda reto até achar o limite
+        cor_esq, hsv_esq, cor_dir, hsv_dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul:117: {cor_esq=}, {cor_dir=}")
 
         if certificar_cor(sensor_cor_dir, sensor_cor_esq, Color.BLUE):
@@ -217,21 +228,52 @@ def mandar_abrir_garra():
             comando, *args = comando
         else: continue
 
+def mandar_fechar_garra():
+    hub.ble.broadcast((comando_bt.fecha_garra,))
+    comando = -1
+    while comando != comando_bt.fechei:
+        comando = hub.ble.observe(TX_BRACO)
+        if comando is not None:
+            comando, *args = comando
+        else: continue
+
+def mandar_abrir_garra():
+    hub.ble.broadcast((comando_bt.abre_garra,))
+    comando = -1
+    while comando != comando_bt.abri:
+        comando = hub.ble.observe(TX_BRACO)
+        if comando is not None:
+            comando, *args = comando
+        else: continue
+
+
+def mandar_ver_cor_passageiro():
+    hub.ble.broadcast((comando_bt.ver_cor_passageiro,))
+    comando = -1
+    while comando != comando_bt.cor_passageiro:
+        comando = hub.ble.observe(TX_BRACO)
+        if comando is not None:
+            comando, *args = comando
+        else: continue
+
 def main(hub):
     crono = StopWatch()
-    while crono.time() < 1000:
+    while crono.time() < 5000:
         botões = hub.buttons.pressed()
         if botao_calibrar in botões:
             hub.speaker.beep(frequency=300, duration=100)
 
             #! levar os dois sensores em consideração
-            mapa_hsv = menu_calibracao(hub, sensor_cor_esq)
+            mapa_hsv = menu_calibracao(hub, sensor_cor_esq, sensor_cor_dir)
             cores.repl_calibracao(mapa_hsv)#, lado="esq")
             return
 
     hub.system.set_stop_button((Button.BLUETOOTH,))
     hub.speaker.beep(frequency=600, duration=100)
+
     alinhou = False
+    #! antes de qualquer coisa, era bom ver se na sua frente tem obstáculo
+    #! sobre isso ^ ainda, tem que tomar cuidado pra não confundir eles com os passageiros
     while True:
         if not alinhou:
             alinhou = alinhar()

@@ -45,9 +45,7 @@ def unnorm_hsv(hsv):
     h, s, v = hsv
     return (h*360, s*100, v*100)
 
-def coletar_valores(hub, sensor, botao_parar) -> tuple[rgb, hsv, hsv]:
-    wait(200)
-
+def iter_coleta(hub, botao_parar, sensor):
     minm, maxm = (360, 100, 100), (0, 0, 0)
     soma, cont = (000, 000, 000), 0
     while botao_parar not in hub.buttons.pressed():
@@ -62,18 +60,40 @@ def coletar_valores(hub, sensor, botao_parar) -> tuple[rgb, hsv, hsv]:
         soma = tuple(map(lambda c,s: c+s, hsv, soma))
         cont += 1
 
-        cor_txt_rgb = tuple(map("{:.2f}".format, rgb_norm))
-        cor_txt_hsv = tuple(map("{:.2f}".format, hsv))
-        print(cor_txt_hsv, cor_txt_rgb, "max:", maxm, "min:", minm)
+        if 1:
+            cor_txt_rgb = tuple(map("{:.2f}".format, rgb_norm))
+            cor_txt_hsv = tuple(map("{:.2f}".format, hsv))
+            print(cor_txt_hsv, cor_txt_rgb)
+
+        yield (minm, soma, cont, maxm)
+
+
+def coletar_valores(hub, botao_parar, esq=None, dir=None) -> tuple[hsv, hsv, hsv]:
+    wait(200)
+    if esq and dir:
+        for info_esq, info_dir in zip(iter_coleta(hub, botao_parar, esq),
+                                      iter_coleta(hub, botao_parar, dir)):
+            minme, somae, conte, maxme = info_esq
+            minmd, somad, contd, maxmd = info_dir
+
+            minm = tuple(map(min, minme, minmd))
+            soma = tuple(map(lambda c,s: c+s, somad, somae))
+            cont = conte + contd
+            maxm = tuple(map(max, maxme, maxmd))
+            #! fiz assim provisoriamente, acho que devia ser separado por lado mesmo
+    else:
+        sensor = esq if esq else dir
+        for info in iter_coleta(hub, botao_parar, sensor):
+            minm, soma, cont, maxm = info
 
     med = tuple(map(lambda s: s/cont, soma))
     print("max:", maxm, "med:", med, "min:", minm)
 
-    return (minm, round(med), maxm)
+    return (minm, tuple(map(round, med)), maxm)
 
 def identificar_por_intervalo_hsv(hsv) -> cor:
     h, s, v = hsv
-    for i, (m, mm, M) in enumerate(mapa_hsv): # :-1 pula cor NENHUMA
+    for i, (m, mm, M) in enumerate(mapa_hsv):
         hm, _, _ = m
         hM, _, _ = M
 
@@ -86,6 +106,6 @@ def identificar(color) -> cor:
 
 def repl_calibracao(mapa_hsv, lado=""):
     print(f"mapa_hsv{lado} = [")
-    for c in range(len(cor)):
+    for c in range(len(cor)-1): # -1 pula cor NENHUMA
         print(f"\t{mapa_hsv[c]}, #{cor(c)}")
     print("]")
