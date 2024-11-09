@@ -24,8 +24,48 @@ DIST_EIXO_SENS_DIST = 45 #mm   #! checar
 
 DIST_PASSAGEIRO_RUA = 220 #! checar
 
+som_derrota = ["G4/4_", "F#4/4_", "F4/4_", "E4/3"]
+som_vitoria = [ #! melhorar musiquinha (essa é quase mario)
+                    "E3/4",
+                    "E3/4",
+                "R/4", 
+                    "E3/4", 
+                "R/4", 
+                    "C3/4", "E3/4", 
+                "R/4",
+                    "G3/4",
+                "R/4", "R/4", "R/4",
+                    "G3/4",
+                "R/4", "R/4", "R/4",
+                    "C4/4",
+                "R/4", "R/4",
+                    "G3/4",
+                "R/4", "R/4",
+                    "E3/4", 
+                "R/4", "R/4",
+                    "A4/4",
+                "R/4", 
+                    "B4/4",
+                "R/4", 
+                    "A#4/4",
+                    "A4/4",
+                "R/4",
+                    "G3/3",
+                    "E3/3", 
+                    "G3/3",
+                    "A4/4",
+                "R/4", 
+                    "F3/4", 
+                    "G3/4",
+                "R/4", 
+                    "E3/4", 
+                "R/4", 
+                    "C3/4",
+            ]
+
 def setup():
     global hub, sensor_cor_esq, sensor_cor_dir, rodas, botao_calibrar
+    global rodas_conf_padrao
     
     hub = PrimeHub(broadcast_channel=TX_CABECA, observe_channels=[TX_BRACO])
 
@@ -42,6 +82,7 @@ def setup():
                       wheel_diameter=88, axle_track=145.5) #! ver depois se recalibrar
 
     botao_calibrar = Button.CENTER
+    rodas_conf_padrao = rodas.settings()
 
     return hub
 
@@ -97,7 +138,7 @@ def parar():
     rodas.straight(DIST_PARAR)
     rodas.stop()
 
-def achar_limite() -> tuple[Color, Color]:
+def achar_limite() -> tuple[Color, hsv, Color, hsv]:
     rodas.reset()
     rodas.straight(TAM_BLOCO*6, wait=False)
     while not rodas.done():
@@ -110,11 +151,33 @@ def achar_limite() -> tuple[Color, Color]:
     hsv_dir = sensor_cor_dir.hsv()
     return (cor_esq, hsv_esq, cor_dir, hsv_dir)
 
+def ver_nao_pista():
+    cor_esq = sensor_cor_esq.color()
+    cor_dir = sensor_cor_dir.color()
+    return (not pista(cor_esq) or not pista(cor_dir)), cor_esq, cor_dir
+
+def ver_passageiro_perto():
+    dist_esq, dist_dir = ver_distancias()
+    return ((dist_esq < DIST_PASSAGEIRO_RUA or dist_dir < DIST_PASSAGEIRO_RUA),
+            dist_esq, dist_dir)
+
+def andar_ate(*conds_parada: Callable, dist_max=TAM_BLOCO*6) -> tuple[bool, Any]:
+    rodas.reset()
+    rodas.straight(dist_max, wait=False)
+    while not rodas.done():
+        for i, cond_parada in enumerate(conds_parada):
+            chegou, *retorno = cond_parada()
+            if not chegou: continue
+            else:
+                parar()
+                return i+1, retorno
+    return 0, ()
+
 def re_meio_bloco(eixo_menor=False):
     if eixo_menor:
-        rodas.straight(-(TAM_BLOCO_Y//2 - DIST_EIXO_SENSOR), wait=True)
+        rodas.straight(-(TAM_BLOCO_Y//2 - DIST_EIXO_SENSOR))
     else:
-        rodas.straight(-(TAM_BLOCO//2 - DIST_EIXO_SENSOR), wait=True)
+        rodas.straight(-(TAM_BLOCO//2   - DIST_EIXO_SENSOR))
 
 def achar_azul():
     cor_esq, hsv_esq, cor_dir, hsv_dir = achar_limite() # anda reto até achar o limite
@@ -194,53 +257,39 @@ def ver_distancias():
 
 def pegar_primeiro_passageiro():
     #! a cor é pra ser azul
-    _, *conf_resto = conf_anterior = rodas.settings()
-
+    _, *conf_resto  = rodas_conf_padrao
     vel, conf_atual = 50, conf_resto
 
     rodas.turn(90)
-    print("213: procurando vermelho")
-    achar_limite() # anda reto até achar o limite
+    achar_limite()
     #! a cor é pra ser vermelha
 
     rodas.turn(180)
 
-    print("223: indo andar")
     rodas.settings(vel, *conf_atual)
-    rodas.reset()
-    rodas.straight(TAM_BLOCO*4, wait=False)
-    while not rodas.done():
-        cor_esq, cor_dir = sensor_cor_esq.color(), sensor_cor_dir.color()
-        if not pista(cor_esq) or not pista(cor_dir):
-            print("227: não branco")
-            parar()
-            print("230: vou dar ré")
-            re_meio_bloco()
-            #! a cor é pra ser vermelha
-            break
-        else:
-            print("227: branco")
-
-        dist_esq, dist_dir = ver_distancias()
-        print(f"237: {dist_esq=} {dist_dir=}")
-        if (dist_esq < DIST_PASSAGEIRO_RUA) or (dist_dir < DIST_PASSAGEIRO_RUA):
-            print(f"235: passageiro")
-            parar()
-            rodas.straight(-(DIST_EIXO_SENS_DIST-20)) #! desmagificar
-            rodas.turn(90)
-            print(f"243: abrindo_garra")
-            abrir_garra()
-            rodas.straight(TAM_BLOCO*2//5)
-            print(f"243: fechando_garra")
-            fechar_garra()
-            break
-        print("250: fimloop")
-    print("250: saindo")
-    rodas.settings(*conf_anterior)
+    res, extra = andar_ate(ver_nao_pista, ver_passageiro_perto,
+                           dist_max=TAM_BLOCO*4)
+    rodas.settings(*rodas_conf_padrao)
+    if   res==1:
+        (cor_esq, cor_dir) = extra
+        parar()
+        re_meio_bloco()
+        return False # é pra ter chegado no vermelho #! a cor é pra ser vermelha
+    elif res==2:
+        (dist_esq, dist_dir) = extra
+        parar()
+        rodas.straight(-(DIST_EIXO_SENS_DIST-20)) #! desmagificar
+        rodas.turn(90)
+        abrir_garra()
+        rodas.straight(TAM_BLOCO*2//5)
+        fechar_garra()
+        return True
+    else:
+        return False #chegou na distância máxima
 
 def main(hub):
     crono = StopWatch()
-    while crono.time() < 0: #! desativado
+    while crono.time() < 0: #! ativar calibração quando for usar
         botões = hub.buttons.pressed()
         if botao_calibrar in botões:
             hub.speaker.beep(frequency=300, duration=100)
@@ -256,7 +305,14 @@ def main(hub):
     #! sobre isso ^ ainda, tem que tomar cuidado pra não confundir eles com os passageiros
     while True:
         achou = achar_azul()
-        if achou:
-            pegar_primeiro_passageiro()
-            abrir_garra()
-        return
+        if achou: break
+
+    pegou = pegar_primeiro_passageiro()
+    if pegou:
+        dar_meia_volta()
+        abrir_garra()
+        hub.speaker.play_notes(som_vitoria, tempo=200)
+    else:
+        hub.speaker.play_notes(som_derrota)
+        wait(1000)
+        return #! fazer main retornar que nem em c e tocar o som com base nisso
