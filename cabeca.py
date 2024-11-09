@@ -47,21 +47,17 @@ som_vitoria = [ #! melhorar musiquinha (essa é quase mario)
                 "R/4", 
                     "B4/4",
                 "R/4", 
-                    "A#4/4",
-                    "A4/4",
+                    "A#4/4", "A4/4",
                 "R/4",
-                    "G3/3",
-                    "E3/3", 
-                    "G3/3",
-                    "A4/4",
+                    "G3/3", "E3/3", "G3/3", "A4/4",
                 "R/4", 
-                    "F3/4", 
-                    "G3/4",
+                    "F3/4", "G3/4",
                 "R/4", 
                     "E3/4", 
                 "R/4", 
                     "C3/4",
             ]
+
 
 def setup():
     global hub, sensor_cor_esq, sensor_cor_dir, rodas, botao_calibrar
@@ -138,6 +134,11 @@ def parar():
     rodas.straight(DIST_PARAR)
     rodas.stop()
 
+ANG_PARAR=-0.0
+def parar_girar():
+    rodas.turn(ANG_PARAR)
+    rodas.stop()
+    
 def achar_limite() -> tuple[Color, hsv, Color, hsv]:
     rodas.reset()
     rodas.straight(TAM_BLOCO*6, wait=False)
@@ -188,6 +189,7 @@ def achar_azul():
         re_meio_bloco()
         rodas.straight(-TAM_BLOCO_BECO) 
         rodas.turn(choice((90, -90)))
+        
 
         cor_esq, hsv_esq, cor_dir, hsv_dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul:97: {cor_esq=}, {cor_dir=}")
@@ -229,7 +231,44 @@ def certificar_cor(sensor_dir, sensor_esq, cor, cor2=None):
             (cor_esq == cores.Color2cor[cor]))
 
 def alinhar():
-    pass
+    while True:
+        cor_dir = sensor_cor_dir.color()
+        cor_esq = sensor_cor_esq.color()
+        print(cor_dir, cor_esq)
+
+        ang_girado = 0.0
+        dist_percorrida = 0.0
+        rodas.straight(TAM_BLOCO/10, wait=False)
+        if rodas.distance() > TAM_BLOCO*4//5:
+            rodas.straight(-rodas.distance(), wait=True)
+            rodas.turn(90)
+            rodas.reset()
+            continue
+
+        if not pista(cor_esq) or not pista(cor_dir):
+            parar()
+            dist_percorrida = rodas.distance()
+            if not pista(cor_esq) and not pista(cor_dir):
+                print("ENTREI RETO")
+                rodas.straight(-dist_percorrida, wait=True)
+                return True
+            else:
+                print("ENTREI TORTO")
+                rodas.turn(-90, wait=False)
+                cor_dir = sensor_cor_dir.color()
+                cor_esq = sensor_cor_esq.color()
+                if not (pista(cor_dir) ^ pista(cor_esq)):
+                    print("cor_igual")
+                    parar_girar()
+                    ang_girado = rodas.angle()
+                    rodas.turn(-ang_girado, wait=True)
+                    rodas.straight(-dist_percorrida, wait=True)                
+                    rodas.turn(ang_girado, wait=True)
+
+                    rodas.turn(90)
+                    rodas.reset()
+                    return alinhar()
+
 
 def esperar_resposta(esperado):
     comando = -1
@@ -277,11 +316,12 @@ def pegar_primeiro_passageiro():
         return False # é pra ter chegado no vermelho #! a cor é pra ser vermelha
     elif res==2:
         (dist_esq, dist_dir) = extra
+        dist = dist_esq if dist_esq < dist_dir else dist_dir
         parar()
         rodas.straight(-(DIST_EIXO_SENS_DIST-20)) #! desmagificar
         rodas.turn(90)
         abrir_garra()
-        rodas.straight(TAM_BLOCO*2//5)
+        rodas.straight(dist)
         fechar_garra()
         return True
     else:
@@ -293,7 +333,6 @@ def main(hub):
         botões = hub.buttons.pressed()
         if botao_calibrar in botões:
             hub.speaker.beep(frequency=300, duration=100)
-
             #! levar os dois sensores em consideração separadamente
             mapa_hsv = menu_calibracao(hub, sensor_cor_esq, sensor_cor_dir)
             cores.repl_calibracao(mapa_hsv)#, lado="esq")
@@ -301,12 +340,15 @@ def main(hub):
 
     hub.system.set_stop_button((Button.BLUETOOTH,))
     hub.speaker.beep(frequency=600, duration=100)
+
     #! antes de qualquer coisa, era bom ver se na sua frente tem obstáculo
     #! sobre isso ^ ainda, tem que tomar cuidado pra não confundir eles com os passageiros
-    while True:
-        achou = achar_azul()
-        if achou: break
-
+    alinhou = achou_azul = False
+    while not alinhou:
+        alinhou = alinhar()
+    while not achou_azul:
+        achou_azul = achar_azul()
+        
     pegou = pegar_primeiro_passageiro()
     if pegou:
         dar_meia_volta()
