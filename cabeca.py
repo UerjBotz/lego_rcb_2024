@@ -223,14 +223,16 @@ def pegar_primeiro_passageiro():
 
         dist_esq, dist_dir = ver_distancias()
         print(f"237: {dist_esq=} {dist_dir=}")
+
         if (dist_esq < DIST_PASSAGEIRO_RUA) or (dist_dir < DIST_PASSAGEIRO_RUA):
+            dist = dist_esq if dist_esq < dist_dir else dist_dir
             print(f"235: passageiro")
             parar()
             rodas.straight(-(DIST_EIXO_SENS_DIST-20)) #! desmagificar
             rodas.turn(90)
             print(f"243: abrindo_garra")
             abrir_garra()
-            rodas.straight(TAM_BLOCO*2//5)
+            rodas.straight(dist)
             print(f"243: fechando_garra")
             fechar_garra()
             break
