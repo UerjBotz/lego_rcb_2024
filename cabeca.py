@@ -30,8 +30,9 @@ DIST_PASSAGEIRO_RUA = 220 #! checar
 
 def setup():
     global hub, sensor_cor_esq, sensor_cor_dir, rodas
-    global botao_calibrar, rodas_conf_padrao
+    global botao_calibrar, rodas_conf_padrao, ori
     
+    ori = ""
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA, observe_channels=[blt.TX_BRACO])
     print(hub.system.name())
 
@@ -74,9 +75,32 @@ class mudar_velocidade():
     def __exit__(self, exc_type, exc_value, exc_traceback): 
         self.rodas.settings(*self.conf_anterior)
 
+def inverte_orientacao():
+    global ori
+    if ori == "N": ori = "S"
+    if ori == "S": ori = "N"
+    if ori == "L": ori = "O"
+    if ori == "O": ori = "L"
+
 def dar_meia_volta():
+    inverte_orientacao()
     rodas.turn(180)
-    rodas.straight(TAM_BLOCO)
+    
+def virar_direita():
+    global ori
+    if   ori == "N": ori = "L"
+    elif ori == "S": ori = "O"
+    elif ori == "L": ori = "S"
+    elif ori == "O": ori = "N"
+    rodas.turn(90)
+
+def virar_esquerda():
+    global ori
+    if ori == "N": ori = "O"
+    elif ori == "S": ori = "L"
+    elif ori == "L": ori = "N"
+    elif ori == "O": ori = "S"
+    rodas.turn(-90)
 
 DIST_PARAR=-0.4
 def parar():
@@ -128,12 +152,13 @@ def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignor
 def achar_azul() -> bool:
     esq, dir = achar_limite() # anda reto até achar o limite
 
-    if   cores.beco_unificado(*esq) or cores.beco_unificado(*dir): #! beco é menor que os outros blocos
+    if cores.beco_unificado(*esq) or cores.beco_unificado(*dir): #! beco é menor que os outros blocos
         print(f"achar_azul: beco")
 
         re_meio_bloco()
         dar_re(TAM_BLOCO_BECO) 
-        rodas.turn(choice((90, -90)))
+        # rodas.turn(choice((90, -90)))
+        choice((virar_direita, virar_esquerda))() # divertido
         
         esq, dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul: beco indo azul")
@@ -148,7 +173,7 @@ def achar_azul() -> bool:
         print(f"achar_azul: parede")
 
         re_meio_bloco()
-        rodas.turn(choice((90, -90)))
+        choice((virar_direita, virar_esquerda))() # divertido      
 
         return False
     else: #azul
@@ -161,7 +186,7 @@ def achar_azul() -> bool:
         else:
             print("achar_azul: não azul")
             re_meio_bloco()
-            rodas.turn(90)
+            virar_direita()
             return False
 
 def alinha_parede(vel, vel_ang, giro_max=45) -> bool:
@@ -214,7 +239,7 @@ def alinhar(max_tentativas=3, vel=80, vel_ang=20, giro_max=70) -> None:
 
         if alinhou: return
         else:
-            rodas.turn(90) #! testar agora
+            virar_direita() #! testar agora
             continue
     return
         
@@ -231,9 +256,7 @@ def pegar_passageiro() -> bool:
         (cor_esq, cor_dir) = info
         print(f"{cor_esq=}, {cor_dir=}")
         re_meio_bloco()
-        rodas.turn(180)
-        if   ori == "S": ori = "N"
-        elif ori == "N": ori = "S"
+        dar_meia_volta()
 
         return False # é pra ter chegado no vermelho
     elif regra_corresp == 2:
@@ -266,12 +289,10 @@ def pegar_primeiro_passageiro() -> bool:
     global ori
     print("pegar_primeiro_passageiro")
     #! a cor é pra ser azul
-    rodas.turn(90)
-    ori = "S"
+    virar_direita()
     achar_limite()
     #! a cor é pra ser vermelha
-    rodas.turn(180)
-    ori = "N"
+    dar_meia_volta()
     pegou = pegar_passageiro()
     while not pegou:
         pegou = pegar_passageiro()
@@ -283,14 +304,18 @@ def seguir_caminho(pos, obj, ori): #! lidar com outras coisas
         if   mov == tipo_movimento.FRENTE:
             rodas.straight(TAM_BLOCO)
         elif mov == tipo_movimento.TRAS:
-            rodas.turn(180)
+            dar_meia_volta()
+            rodas.straight(TAM_BLOCO)
+        elif mov == tipo_movimento.ESQUERDA_FRENTE:
+            virar_esquerda()
+            rodas.straight(TAM_BLOCO)
+        elif mov == tipo_movimento.DIREITA_FRENTE:
+            virar_direita()
             rodas.straight(TAM_BLOCO)
         elif mov == tipo_movimento.ESQUERDA:
-            rodas.turn(-90)
-            rodas.straight(TAM_BLOCO)
+            virar_esquerda()
         elif mov == tipo_movimento.DIREITA:
-            rodas.turn(90)
-            rodas.straight(TAM_BLOCO)
+            virar_direita()
 
     def interpretar_caminho(caminho): #! receber orientação?
         for mov in caminho: #! yield orientação nova?
@@ -298,11 +323,14 @@ def seguir_caminho(pos, obj, ori): #! lidar com outras coisas
             interpretar_movimento(mov)
             yield rodas.distance()
 
-    movs = achar_movimentos(pos, obj, ori)
+    movs, ori_final = achar_movimentos(pos, obj, ori)
     #print(*(tipo_movimento(mov) for mov in movs))
     for _ in interpretar_caminho(movs):
         while not rodas.done():
             pass
+        
+    while ori != ori_final:
+        virar_direita()
 
 def menu_calibracao(hub, sensor_esq, sensor_dir,
                                      botao_parar=Button.BLUETOOTH,
@@ -365,14 +393,11 @@ def main(hub):
         achar_limite()
         cor = blt.ver_cor_passageiro()
         if cor == Color.GREEN:
-            fim = (1,4)
-            ori_fim = "S"
+            fim = (2,4)
         if cor == Color.RED:
-            fim = (2,3)
-            ori_fim = "O"
+            fim = (2,2)
         if cor == Color.BLUE:
-            fim = (0,3)
-            ori_fim = "L"
+            fim = (0,4)
         else:
             pass #!
 

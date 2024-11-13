@@ -287,7 +287,7 @@ def caminho_relativo(caminho_absoluto: list[tuple[int, int]]):
 
 #orientação = N | S | L | O
 tipo_movimento = Enum("tipo_movimento",
-                      ["FRENTE", "DIREITA", "ESQUERDA", "TRAS"])
+                      ["FRENTE", "DIREITA_FRENTE", "ESQUERDA_FRENTE", "TRAS", "DIREITA", "ESQUERDA"])
 
 def movimento_relativo(relativo, orientacao):
     orientacoes = ["N", "L", "S", "O"]
@@ -315,21 +315,45 @@ def movimento_relativo(relativo, orientacao):
         if   diferenca == 0:
             movimentos.append(tipo_movimento.FRENTE)
         elif diferenca == 1:
-            movimentos.append(tipo_movimento.DIREITA)
+            movimentos.append(tipo_movimento.DIREITA_FRENTE)
         elif diferenca == 2:
             movimentos.append(tipo_movimento.TRAS)
         elif diferenca == 3:
-            movimentos.append(tipo_movimento.ESQUERDA)
+            movimentos.append(tipo_movimento.ESQUERDA_FRENTE)
 
         idx_orientacao = nova_idx_orientacao
 
     return movimentos
 
+
+
 def achar_movimentos(pos_ini, pos_fim, orientacao):
+    lin, col = pos_fim
+    
+    indice = next((i for i, valor in enumerate(mapa[lin, col]) if valor == tipo_parede.ENTRADA), None)
+    if indice == None:
+        print("Não há entradas disponíveis")
+        return []
+    
+    orientacao_final = None
+    if posicao_parede(indice) == posicao_parede.NORTE:
+        pos_fim = pos_fim[lin+1][col]
+        orientacao_final = "S"
+    elif posicao_parede(indice) == posicao_parede.SUL:
+        pos_fim = pos_fim[lin-1][col]
+        orientacao_final = "N"
+    elif posicao_parede(indice) == posicao_parede.LESTE:
+        pos_fim = pos_fim[lin][col+1]
+        orientacao_final = "O"
+    elif posicao_parede(indice) == posicao_parede.OESTE:
+        pos_fim = pos_fim[lin][col-1]
+        orientacao_final = "L"
+    
+    
     caminho     = a_estrela(mapa, pos_ini, pos_fim)
     caminho_rel = caminho_relativo(caminho)
 
-    return movimento_relativo(caminho_rel, orientacao)
+    return (movimento_relativo(caminho_rel, orientacao), orientacao_final)
 
 
 # if __name__ == "__main__":
