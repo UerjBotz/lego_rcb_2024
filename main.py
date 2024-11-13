@@ -1,7 +1,7 @@
 from lib.bipes import bipe_inicio, bipe_final
 
-ID = None     if False  else ID
-id = ID.TESTE if not ID else id
+ID = None     if False  else ID # pyright: ignore
+id = ID.TESTE if not ID else id # pyright: ignore
 
 if id == ID.CABECA:
     import cabeca
