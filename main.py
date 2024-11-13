@@ -1,9 +1,7 @@
-from lib.polyfill import Enum
-
 from lib.bipes import bipe_inicio, bipe_final
 
-ID = Enum("ID", ["BRACO", "CABECA", "TESTE"])
-id = ID.CABECA
+ID = None     if False  else ID
+id = ID.TESTE if not ID else id
 
 if id == ID.CABECA:
     import cabeca
@@ -17,7 +15,6 @@ elif id == ID.BRACO:
     import braco
     hub = braco.setup()
     print(hub.battery.voltage())
-    print(hub.system.name())
 
     bipe_inicio(hub)
     braco.main(hub)

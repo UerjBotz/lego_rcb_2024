@@ -2,11 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Module",
+            "name": "Fazer upload para spike",
             "type": "debugpy",
             "request": "launch",
-            "module": "pybricksdev",
-            "args": ["run", "ble", "main.py"],
+            "program": ".vscode/build.py",
         }
     ]
 }

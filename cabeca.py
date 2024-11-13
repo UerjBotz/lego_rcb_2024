@@ -104,6 +104,7 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
             (cor_esq, hsv_esq), (cor_dir, hsv_dir))
 
 def ver_passageiro_perto():
+    print("blt: ver_distancias")
     dist_esq, dist_dir = blt.ver_distancias(hub)
     return ((dist_esq < DIST_PASSAGEIRO_RUA or dist_dir < DIST_PASSAGEIRO_RUA),
             dist_esq, dist_dir)
@@ -147,7 +148,7 @@ def achar_azul() -> bool:
         print(f"achar_azul: parede")
 
         re_meio_bloco()
-        rodas.turn(90)
+        rodas.turn(choice((90, -90)))
 
         return False
     else: #azul
@@ -220,7 +221,7 @@ def alinhar(max_tentativas=3, vel=80, vel_ang=20, giro_max=70) -> None:
 
 def pegar_passageiro() -> bool:
     global ori
-    print("pegar passageiro")
+    print("pegar_passageiro")
     with mudar_velocidade(rodas, 50):
         regra_corresp, info = andar_ate(ver_nao_pista, ver_passageiro_perto,
                                         dist_max=TAM_BLOCO*4)
@@ -246,6 +247,7 @@ def pegar_passageiro() -> bool:
         dar_re(DIST_EIXO_SENS_DIST-20) #! desmagificar
         rodas.turn(ang)
         rodas.straight(dist)
+        print("tentando fechar garra")
         blt.fechar_garra(hub)
         cor_cano = blt.ver_cor_passageiro(hub)
         print(cores.cor(cores.identificar(cor_cano)))
@@ -262,7 +264,7 @@ def pegar_passageiro() -> bool:
 
 def pegar_primeiro_passageiro() -> bool:
     global ori
-    print("pegando passageiro")
+    print("pegar_primeiro_passageiro")
     #! a cor é pra ser azul
     rodas.turn(90)
     ori = "S"
