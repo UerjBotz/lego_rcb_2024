@@ -42,19 +42,25 @@ def main(hub):
         else: continue
 
         if   comando == comando_bt.fecha_garra:
+            print("pediu fecho")
             if not garra_fechada:
+                print("fechando")
                 garra.fecha_garra(motor_garra)
                 garra_fechada = True
             hub.ble.broadcast((comando_bt.fechei,))
         elif comando == comando_bt.abre_garra:
+            print("pediu abre")
             if garra_fechada:
+                print("abrindo")
                 garra.abre_garra(motor_garra)
                 garra_fechada = False
             hub.ble.broadcast((comando_bt.abri,))
             
         elif comando == comando_bt.ver_cor_passageiro:
+            print("pediu cor")
             cor = sensor_cor_frente.color() #! reclassificar co hsv se der NONE
             hub.ble.broadcast((comando_bt.cor_passageiro, cor.h,cor.s,cor.v))    
         elif comando == comando_bt.ver_distancias:
+            print("pediu dist")
             dist_esq, dist_dir = ultra_esq.distance(), ultra_dir.distance()
             hub.ble.broadcast((comando_bt.distancias, dist_esq, dist_dir))
