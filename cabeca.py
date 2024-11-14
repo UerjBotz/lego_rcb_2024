@@ -145,16 +145,30 @@ def andar_ate(*conds_parada: Callable, dist_max=TAM_BLOCO*6) -> tuple[bool, tupl
                 return i+1, retorno
     return 0, (rodas.distance(),)
 
+def alinha_limite(max_tentativas=3):
+    for i in range(max_tentativas):
+        rodas.reset()
+        re_meio_bloco()
+        alinhou = alinha_parede(vel=80, vel_ang=30, giro_max=70)
+        ang  = rodas.angle()
+        dist = rodas.distance()
+        if alinhou: return
+        else:
+            with mudar_velocidade(rodas, 80, 30):
+                rodas.turn(-ang)
+                dar_re(dist)
+                rodas.turn(ang)
+    return
+
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
     achou, extra = andar_ate(ver_nao_pista)
     if achou:
-        alinha_parede(vel=80, vel_ang=20)
         return extra
     else:
         return cores.todas(sensor_cor_esq, sensor_cor_dir)
 
 def achar_azul() -> bool:
-    esq, dir = achar_limite() # anda reto até achar o limite
+    esq, dir = achar_limite(); alinha_limite() # anda reto até achar o limite
 
     if cores.beco_unificado(*esq) or cores.beco_unificado(*dir): #! beco é menor que os outros blocos
         print(f"achar_azul: beco")
@@ -164,12 +178,12 @@ def achar_azul() -> bool:
 
         choice((virar_direita, virar_esquerda))() # divertido
         
-        esq, dir = achar_limite() # anda reto até achar o limite
+        esq, dir = achar_limite(); alinha_limite() # anda reto até achar o limite
         print(f"achar_azul: beco indo azul")
 
         if cores.parede_unificado(*esq) or cores.parede_unificado(*dir): dar_meia_volta()
 
-        esq, dir = achar_limite() # anda reto até achar o limite
+        esq, dir = achar_limite(); alinha_limite() # anda reto até achar o limite
         print(f"achar_azul: beco indo azul certeza")
 
         return cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.azul_unificado)
@@ -182,7 +196,7 @@ def achar_azul() -> bool:
         return False
     else: #azul
         print("achar_azul: vi azul")
-        esq, dir = achar_limite() # anda reto até achar o limite
+        esq, dir = achar_limite() # anda reto até achar o limite #! achar alinha
 
         if cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.azul_unificado):
             print("achar_azul: azul mesmo")
@@ -229,7 +243,7 @@ def alinha_parede(vel, vel_ang, giro_max=45) -> bool:
                 return False #provv alinhado, talvez tentar de novo
         return False # girou tudo, não sabemos se tá alinhado
 
-def alinhar(max_tentativas=3, vel=80, vel_ang=20, giro_max=70) -> None:
+def alinhar(max_tentativas=4, virar=True, vel=80, vel_ang=20, giro_max=70) -> None:
     for _ in range(max_tentativas): #! esqueci mas tem alguma coisa
         rodas.reset()
         alinhou = alinha_parede(vel, vel_ang, giro_max=giro_max)
@@ -243,7 +257,7 @@ def alinhar(max_tentativas=3, vel=80, vel_ang=20, giro_max=70) -> None:
 
         if alinhou: return
         else:
-            virar_direita() #! testar agora
+            if virar: virar_direita() #! testar agora
             continue
     return
         
@@ -297,7 +311,7 @@ def pegar_primeiro_passageiro() -> bool:
     print("pegar_primeiro_passageiro")
     #! a cor é pra ser azul
     virar_direita()
-    achar_limite()
+    achar_limite(); alinha_limite()
     #! a cor é pra ser vermelha
     dar_meia_volta()
     pegou = pegar_passageiro()
@@ -393,10 +407,10 @@ def main(hub):
     while not achou_azul:
         achou_azul = achar_azul()
     ori = "L"
-    #achar_limite()
-    pegou, ori = pegar_primeiro_passageiro() #! aqui a gente precisa saber a orientação (se é norte/sul|esquerda/direita)
+    #achar_limite(); alinha_limite()
+    pegou = pegar_primeiro_passageiro()
     if pegou:
-        achar_limite()
+        achar_limite(); alinha_limite()
         cor = blt.ver_cor_passageiro()
         if cor == Color.GREEN:
             fim = (2,4)
@@ -414,7 +428,7 @@ def main(hub):
         rodas.straight(TAM_BLOCO//2)
         blt.abrir_garra(hub)
         rodas.straight(-TAM_BLOCO//2)
-        #main(hub) #!
+        main(hub) #!
         musica_vitoria(hub)
     else:
         musica_derrota(hub)
