@@ -146,8 +146,12 @@ def andar_ate(*conds_parada: Callable, dist_max=TAM_BLOCO*6) -> tuple[bool, tupl
     return 0, (rodas.distance(),)
 
 def achar_limite() -> tuple[tuple[Color, hsv], tuple[Color, hsv]]: # type: ignore
-    achou, (esq, dir) = andar_ate(ver_nao_pista)
-    return cores.todas(sensor_cor_esq, sensor_cor_dir) if achou else esq, dir
+    achou, extra = andar_ate(ver_nao_pista)
+    if achou:
+        alinha_parede(vel=80, vel_ang=20)
+        return extra
+    else:
+        return cores.todas(sensor_cor_esq, sensor_cor_dir)
 
 def achar_azul() -> bool:
     esq, dir = achar_limite() # anda reto até achar o limite
@@ -157,18 +161,18 @@ def achar_azul() -> bool:
 
         re_meio_bloco()
         dar_re(TAM_BLOCO_BECO) 
-        # rodas.turn(choice((90, -90)))
+
         choice((virar_direita, virar_esquerda))() # divertido
         
         esq, dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul: beco indo azul")
 
-        if cores.parede_unificado(*esq) or cores.parede_unificado(*dir): rodas.turn(180)
+        if cores.parede_unificado(*esq) or cores.parede_unificado(*dir): dar_meia_volta()
 
         esq, dir = achar_limite() # anda reto até achar o limite
         print(f"achar_azul: beco indo azul certeza")
 
-        return sensor_cor_esq.color() == Color.BLUE or sensor_cor_dir.color() == Color.BLUE#! certificar provalmente deveria ser modificad
+        return cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.azul_unificado)
     elif cores.parede_unificado(*esq) or cores.parede_unificado(*dir): #! hsv
         print(f"achar_azul: parede")
 
@@ -180,7 +184,7 @@ def achar_azul() -> bool:
         print("achar_azul: vi azul")
         esq, dir = achar_limite() # anda reto até achar o limite
 
-        if sensor_cor_esq.color() == Color.BLUE or sensor_cor_dir.color() == Color.BLUE: #! certificar provalmente deveria ser modificadO
+        if cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.azul_unificado):
             print("achar_azul: azul mesmo")
             return True
         else:
@@ -262,27 +266,30 @@ def pegar_passageiro() -> bool:
     elif regra_corresp == 2:
         print("regra 2")
         (dist_esq, dist_dir) = info
-        dist = dist_esq if dist_esq < dist_dir else dist_dir
-        ang  = -90      if dist_esq < dist_dir else 90
-        #! inverti a virada aqui, checar se não tão invertidos na definição
+        if dist_esq < dist_dir:
+            dist = dist_esq
+            virar, desvirar = virar_esquerda, virar_direita
+        else:
+            dist = dist_dir
+            virar, desvirar = virar_direita, virar_esquerda
 
         blt.abrir_garra(hub)
         dar_re(DIST_EIXO_SENS_DIST-20) #! desmagificar
-        rodas.turn(ang)
+        virar()
         rodas.straight(dist)
         print("tentando fechar garra")
         blt.fechar_garra(hub)
         cor_cano = blt.ver_cor_passageiro(hub)
-        print(cores.cor(cores.identificar(cor_cano)))
+        print(f"{cor_cano=}/{cores.cor(cores.identificar(cor_cano))}")
 
         if cores.identificar(cor_cano) == cores.cor.BRANCO:
             blt.abrir_garra(hub)
             rodas.straight(-dist)
-            rodas.turn(-ang)
+            desvirar()
             return False
         return True
     else:
-        rodas.turn(180)
+        dar_meia_volta()
         return False #chegou na distância máxima
 
 def pegar_primeiro_passageiro() -> bool:
@@ -378,7 +385,6 @@ def main(hub):
 
     hub.system.set_stop_button((Button.BLUETOOTH,))
     bipe_cabeca(hub)
-
 
     #! antes de qualquer coisa, era bom ver se na sua frente tem obstáculo
     #! sobre isso ^ ainda, tem que tomar cuidado pra não confundir eles com os passageiros

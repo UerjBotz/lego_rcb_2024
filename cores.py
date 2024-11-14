@@ -122,7 +122,6 @@ def identificar(color) -> cor: # type: ignore
     except TypeError:
         hsv = color.h, color.s, color.v
         return identificar_por_intervalo_hsv(hsv)
-    
 
 def pista_unificado(color, hsv):
     deles = (color == Color.WHITE)
@@ -150,15 +149,19 @@ def lombada_unificado(color, hsv):
                  (identificar(hsv) != cor.AZUL)) #! talvez == BRANCO, pq é isso
     return combinado
 
-def certificar(sensor_dir, sensor_esq, cor, cor2=None) -> bool:
-    cor2 = cor if cor2 is None else cor2 #! levar em consideração
+def azul_unificado(color, hsv):
+    deles = ((color == Color.BLUE))
+    return deles
 
-    cor_dir = identificar(sensor_dir.hsv())
-    cor_esq = identificar(sensor_esq.hsv())
-    print(f"certificar_cor:125: {cor(cor_esq)}, {cor(cor_dir)}")
+def certificar(sensor_dir, sensor_esq, uni, uni2=None) -> bool:
+    if uni2 is None:
+        uni2 = uni
+    esq, dir = todas(sensor_esq, sensor_dir)
 
-    return ((cor_dir == Color2cor[Color2tuple(cor)]) or
-            (cor_esq == Color2cor[Color2tuple(cor2)]))
+    res = uni(*esq) and uni2(*dir)
+    print(f"certificar_cor: {res=}")
+
+    return res
 
 
 def repl_calibracao(mapa_hsv, lado=""):

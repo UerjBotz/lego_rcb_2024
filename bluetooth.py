@@ -1,16 +1,18 @@
 from lib.polyfill import Enum
 
 TX_CABECA = 1
-TX_BRACO = 2
+TX_BRACO  = 2
 
 comando_bt = Enum("comando_bt", ["fecha_garra",
-                                 "abre_garra", 
-                                 "ver_cor_passageiro", 
+                                 "abre_garra",
+                                 "ver_cor_passageiro",
+                                 "ver_hsv_passageiro",
                                  "ver_distancias",
                                  #! fazer um enum comandos e outro respostas
                                  "fechei",
-                                 "abri",       
-                                 "cor_passageiro",     
+                                 "abri",
+                                 "cor_passageiro",
+                                 "hsv_passageiro",
                                  "distancias"])
 
 def esperar_resposta(hub, esperado, canal=TX_BRACO):
@@ -30,6 +32,10 @@ def abrir_garra(hub):
     return esperar_resposta(hub, comando_bt.abri)
 
 def ver_cor_passageiro(hub):
+    hub.ble.broadcast((comando_bt.ver_cor_passageiro,))
+    return esperar_resposta(hub, comando_bt.cor_passageiro)
+
+def ver_hsv_passageiro(hub):
     hub.ble.broadcast((comando_bt.ver_cor_passageiro,))
     return esperar_resposta(hub, comando_bt.cor_passageiro)
 
