@@ -35,6 +35,11 @@ def setup():
     ori = ""
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA, observe_channels=[blt.TX_BRACO])
     print(hub.system.name())
+    while hub.system.name() != "spike1":
+        hub.speaker.beep(frequency=1024)
+        wait(200)
+    else:
+        hub.light.blink(Color.RED, [100,50,200,100])
 
     hub.display.orientation(Side.BOTTOM)
     hub.system.set_stop_button((Button.CENTER, Button.BLUETOOTH))

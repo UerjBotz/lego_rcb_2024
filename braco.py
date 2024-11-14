@@ -2,7 +2,6 @@ from pybricks.hubs import PrimeHub
 
 from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
 from pybricks.parameters import Port, Button, Color, Direction
-
 from pybricks.tools      import wait, StopWatch
 
 from bluetooth import comando_bt, TX_BRACO, TX_CABECA
@@ -15,6 +14,11 @@ def setup():
 
     hub = PrimeHub(broadcast_channel=TX_BRACO, observe_channels=[TX_CABECA])
     print(hub.system.name())
+    while hub.system.name() != "spike0":
+        hub.speaker.beep(frequency=1024)
+        wait(200)
+    else:
+        hub.light.blink(Color.ORANGE, [100,50,200,100])
 
     motor_garra = Motor(Port.C)
 
@@ -30,15 +34,12 @@ def setup():
 def main(hub):
     global garra_fechada
 
-    #contador_msgs = 0
     while True:
         comando = hub.ble.observe(TX_CABECA)
         if comando is not None:
-            #id_msg, 
+            print(comando)
             comando, *args = comando
         else: continue
-
-        #if id_msg <= contador_msgs: continue
 
         if   comando == comando_bt.fecha_garra:
             if not garra_fechada:
