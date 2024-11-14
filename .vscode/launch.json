@@ -5,7 +5,7 @@
             "name": "Fazer upload para spike",
             "type": "debugpy",
             "request": "launch",
-            "program": ".vscode/build.py",
+            "program": "build/build.py",
         }
     ]
 }
