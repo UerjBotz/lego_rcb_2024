@@ -390,14 +390,19 @@ def main(hub):
     #achar_limite()
     pegou, ori = pegar_primeiro_passageiro() #! aqui a gente precisa saber a orientação (se é norte/sul|esquerda/direita)
     if pegou:
+        import caminhos # pyright
         achar_limite()
         cor = blt.ver_cor_passageiro()
+        
+        #! verificar tamanho do passageiro e funcao p verificar se desembarque disponivel
         if cor == Color.GREEN:
-            fim = (2,4)
+            fim = caminhos.posicao_desembarque_adulto['VERDE'][0]
         if cor == Color.RED:
-            fim = (2,2)
+            fim = caminhos.posicao_desembarque_adulto['VERMELHO'][0]
         if cor == Color.BLUE:
-            fim = (0,4)
+            fim = caminhos.posicao_desembarque_adulto['AZUL'][0]
+        if cor == Color.BROWN:
+            fim = caminhos.posicao_desembarque_adulto['MARROM'][0]
         else:
             pass #!
 

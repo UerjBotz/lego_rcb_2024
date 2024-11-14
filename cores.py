@@ -3,7 +3,7 @@ from pybricks.parameters import Color
 
 from lib.polyfill import Enum, rgb_to_hsv, hsv_to_rgb
 
-from lib.cores_calibradas_ import mapa_hsv
+from lib.cores_calibradas_ import mapa_hsv, mapa_hsv_frente
 
 cor = Enum("cor", ["AMARELO",
                    "VERDE",
@@ -101,7 +101,7 @@ def coletar_valores(hub, botao_parar, esq=None, dir=None) -> tuple[hsv, hsv, hsv
 
     return (minm, tuple(map(round, med)), maxm)
 
-def identificar_por_intervalo_hsv(hsv) -> cor: # type: ignore
+def identificar_por_intervalo_hsv(hsv, mapa) -> cor: # type: ignore
     h, s, v = hsv
     
     if   v <= 20: #! usar valores do arquivo
@@ -109,19 +109,45 @@ def identificar_por_intervalo_hsv(hsv) -> cor: # type: ignore
     elif s <= 10 and v >= 90:
         return cor.BRANCO
 
-    for i, (m, mm, M) in enumerate(mapa_hsv):
+    for i, (m, mm, M) in enumerate(mapa):
         hm, _, _ = m
         hM, _, _ = M
 
         if h in range(hm, hM): return i
     return cor.NENHUMA
 
-def identificar(color) -> cor: # type: ignore
+def identificar_por_hue_medio(hsv, mapa) -> int:
+    h, s, v = hsv
+    menor_diferenca = float('inf')
+    indice_mais_perto = None
+
+    for i, (_, medM, _) in enumerate(mapa):
+        # Considera apenas a componente media (hM)
+        hm, _, _ = medM
+        diferenca = abs(h - hm)  #  representa a média do hue
+        if diferenca < menor_diferenca:
+            indice_mais_perto = i
+            menor_diferenca = diferenca
+    
+    if indice_mais_perto is None:
+        return cor.NENHUMA  # Retorne um valor padrão se não encontrar nada
+
+    return indice_mais_perto  # Retorna o índice da cor mais próxima
+
+
+def identificar(color, sensor="chao") -> cor: # type: ignore   
+    if sensor == "frente":
+        identificar_cor = identificar_por_hue_medio
+        mapa = mapa_hsv_frente
+    elif sensor == "chao":
+        identificar_cor = identificar_por_intervalo_hsv
+        mapa = mapa_hsv
+    
     try:
-        return identificar_por_intervalo_hsv(color)
-    except TypeError:
+        return identificar_cor(color, mapa)
+    except:
         hsv = color.h, color.s, color.v
-        return identificar_por_intervalo_hsv(hsv)
+        return identificar_cor(hsv, mapa)
     
 
 def pista_unificado(color, hsv):

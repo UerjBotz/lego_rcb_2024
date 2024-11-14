@@ -10,6 +10,19 @@ tipo_parede = Enum("tipo_parede", ["PAREDE",
 
 posicao_parede = Enum("posicao_parede", ["N", "S", "L", "O"])
 
+posicao_desembarque_adulto = {
+    "AZUL": ((4, 2)),
+    "VERDE": ((2, 4)),
+    "VERMELHO": ((2, 2)),
+    "MARROM": ((0, 2)),
+}
+
+posicao_desembarque_crianca = {
+    "AZUL": ((0, 4)),
+    "VERDE": ((0, 0), (2, 0), (4, 0)),
+    "MARROM": ((4, 4)),
+}
+
 class Edificio:
     def __init__(self, nome, cor, paredes):
         self.nome = nome
