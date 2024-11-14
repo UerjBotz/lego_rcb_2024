@@ -23,8 +23,8 @@ def setup():
     motor_garra = Motor(Port.C)
 
     sensor_cor_frente = ColorSensor(Port.A)
-    ultra_esq = UltrasonicSensor(Port.E)
-    ultra_dir = UltrasonicSensor(Port.F)
+    # ultra_esq = UltrasonicSensor(Port.E)
+    # ultra_dir = UltrasonicSensor(Port.F)
 
     garra_fechada = False
 

@@ -1,6 +1,6 @@
 from pybricks.hubs import PrimeHub
 
-from pybricks.pupdevices import Motor, ColorSensor
+from pybricks.pupdevices import Motor, ColorSensor, UltrasonicSensor
 from pybricks.parameters import Port, Stop, Side, Direction, Button, Color
 
 from pybricks.tools      import wait, StopWatch
@@ -29,7 +29,7 @@ DIST_PASSAGEIRO_RUA = 220 #! checar
 
 
 def setup():
-    global hub, sensor_cor_esq, sensor_cor_dir, rodas
+    global hub, rodas, sensor_cor_esq, sensor_cor_dir, sensor_ultra_esq, sensor_ultra_dir
     global botao_calibrar, rodas_conf_padrao, ori
     
     ori = ""
@@ -46,6 +46,9 @@ def setup():
 
     sensor_cor_esq = ColorSensor(Port.D)
     sensor_cor_dir = ColorSensor(Port.C)
+
+    sensor_ultra_esq = UltrasonicSensor(Port.F)
+    sensor_ultra_dir = UltrasonicSensor(Port.E)
 
     roda_esq = Motor(Port.B, positive_direction=Direction.COUNTERCLOCKWISE)
     roda_dir = Motor(Port.A, positive_direction=Direction.CLOCKWISE)
@@ -86,6 +89,9 @@ def inverte_orientacao():
     if ori == "S": ori = "N"
     if ori == "L": ori = "O"
     if ori == "O": ori = "L"
+
+def ler_ultrassons():
+    return sensor_ultra_esq.distance(), sensor_ultra_dir.distance()
 
 def dar_meia_volta():
     inverte_orientacao()
@@ -133,8 +139,8 @@ def ver_nao_pista() -> tuple[bool, tuple[Color, hsv], tuple[Color, hsv]]: # type
             (cor_esq, hsv_esq), (cor_dir, hsv_dir))
 
 def ver_passageiro_perto():
-    print("blt: ver_distancias")
-    dist_esq, dist_dir = blt.ver_distancias(hub)
+    print("ver_passageiro_perto")
+    dist_esq, dist_dir = ler_ultrassons()
     return ((dist_esq < DIST_PASSAGEIRO_RUA or dist_dir < DIST_PASSAGEIRO_RUA),
             dist_esq, dist_dir)
 
