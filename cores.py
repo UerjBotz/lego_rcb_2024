@@ -17,15 +17,21 @@ cor = Enum("cor", ["AMARELO",
 def Color2tuple(color):
     return color.h, color.s, color.v
 
-Color2cor = {
-    Color2tuple(Color.YELLOW): cor.AMARELO,
-    Color2tuple(Color.GREEN ): cor.VERDE, 
-    Color2tuple(Color.BLUE  ): cor.AZUL,
-    Color2tuple(Color.RED   ): cor.VERMELHO,
-    Color2tuple(Color.BROWN ): cor.MARROM,
-    Color2tuple(Color.BLACK ): cor.PRETO,
-    Color2tuple(Color.WHITE ): cor.BRANCO,
-}
+def Color2cor (color):
+    el = {
+           Color2tuple(Color.YELLOW): cor.AMARELO,
+           Color2tuple(Color.GREEN ): cor.VERDE, 
+           Color2tuple(Color.BLUE  ): cor.AZUL,
+           Color2tuple(Color.RED   ): cor.VERMELHO,
+           Color2tuple(Color.BROWN ): cor.MARROM,
+           Color2tuple(Color.BLACK ): cor.PRETO,
+           Color2tuple(Color.WHITE ): cor.BRANCO,
+         }.get(Color2tuple(color))
+    if el is None:
+        print(f"cor inválida: {Color2tuple(color)}")
+        return cor.NENHUMA
+    else:
+        return el
 
 cor2Color = [
     Color.YELLOW,
@@ -142,13 +148,13 @@ def identificar(color, sensor="chao") -> cor: # type: ignore
     elif sensor == "chao":
         identificar_cor = identificar_por_intervalo_hsv
         mapa = mapa_hsv
-    
-    try:
+
+    try: #! ver jeito melhor
         return identificar_cor(color, mapa)
-    except:
+    except TypeError as e:
+        print(f"cores.identificar: {e}")
         hsv = color.h, color.s, color.v
         return identificar_cor(hsv, mapa)
-    
 
 def pista_unificado(color, hsv):
     deles = (color == Color.WHITE)
@@ -160,11 +166,11 @@ def parede_unificado(color, hsv):
              (color == Color.YELLOW))
 
     combinado = (((color == Color.RED) or
-                  (color == Color.BLUE)) and
-                 ((identificar(hsv) == cor.PRETO) or
-                  (identificar(hsv) == cor.BRANCO) or
-                  (identificar(hsv) == cor.NENHUMA)))
-
+                 (color == Color.BLUE)) and
+                ((identificar(hsv) == cor.PRETO) or
+                 (identificar(hsv) == cor.BRANCO) or
+                 (identificar(hsv) == cor.NENHUMA)))
+    #! checar de novo se precisa do combinado
     return deles or combinado
 
 def beco_unificado(color, hsv):
@@ -176,15 +182,19 @@ def lombada_unificado(color, hsv):
                  (identificar(hsv) != cor.AZUL)) #! talvez == BRANCO, pq é isso
     return combinado
 
-def certificar(sensor_dir, sensor_esq, cor, cor2=None) -> bool:
-    cor2 = cor if cor2 is None else cor2 #! levar em consideração
+def azul_unificado(color, hsv):
+    deles = ((color == Color.BLUE))
+    return deles
 
-    cor_dir = identificar(sensor_dir.hsv())
-    cor_esq = identificar(sensor_esq.hsv())
-    print(f"certificar_cor:125: {cor(cor_esq)}, {cor(cor_dir)}")
+def certificar(sensor_dir, sensor_esq, uni, uni2=None) -> bool:
+    if uni2 is None:
+        uni2 = uni
+    esq, dir = todas(sensor_esq, sensor_dir)
 
-    return ((cor_dir == Color2cor[Color2tuple(cor)]) or
-            (cor_esq == Color2cor[Color2tuple(cor2)]))
+    res = uni(*esq) and uni2(*dir)
+    print(f"certificar_cor: {res=}")
+
+    return res
 
 
 def repl_calibracao(mapa_hsv, lado=""):
