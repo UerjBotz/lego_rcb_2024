@@ -330,8 +330,8 @@ def movimento_relativo(relativo, orientacao):
 def achar_movimentos(pos_ini, pos_fim, orientacao):
     lin, col = pos_fim
     
-    indice = next((i for i, valor in enumerate(mapa[lin, col]) if valor == tipo_parede.ENTRADA), None)
-    if indice == None:
+    indice = next((i for i, valor in enumerate(mapa[lin][col]) if valor == tipo_parede.ENTRADA), None)
+    if indice is None:
         print("Não há entradas disponíveis")
         return []
     

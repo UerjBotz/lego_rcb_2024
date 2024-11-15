@@ -36,12 +36,12 @@ def abrir_garra(hub):
 def ver_cor_passageiro(hub):
     print("ver_cor_passageiro:")
     hub.ble.broadcast((comando_bt.ver_cor_passageiro,))
-    return esperar_resposta(hub, comando_bt.cor_passageiro)
+    return esperar_resposta(hub, comando_bt.cor_passageiro)[0]
 
 def ver_hsv_passageiro(hub):
     print("ver_hsv_passageiro:")
-    hub.ble.broadcast((comando_bt.ver_cor_passageiro,))
-    return esperar_resposta(hub, comando_bt.cor_passageiro)
+    hub.ble.broadcast((comando_bt.ver_hsv_passageiro,))
+    return esperar_resposta(hub, comando_bt.hsv_passageiro)
 
 def ver_distancias(hub):
     print("ver_distancias:")

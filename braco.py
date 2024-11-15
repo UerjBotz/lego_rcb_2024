@@ -6,6 +6,7 @@ from pybricks.tools      import wait, StopWatch
 
 from bluetooth import comando_bt, TX_BRACO, TX_CABECA
 
+import cores
 import garra
 
 def setup():
@@ -20,11 +21,8 @@ def setup():
     else:
         hub.light.blink(Color.ORANGE, [100,50,200,100])
 
-    motor_garra = Motor(Port.C)
-
+    motor_garra       = Motor(Port.C)
     sensor_cor_frente = ColorSensor(Port.A)
-    # ultra_esq = UltrasonicSensor(Port.E)
-    # ultra_dir = UltrasonicSensor(Port.F)
 
     garra_fechada = False
 
@@ -59,7 +57,11 @@ def main(hub):
         elif comando == comando_bt.ver_cor_passageiro:
             print("pediu cor")
             cor = sensor_cor_frente.color() #! reclassificar co hsv se der NONE
-            hub.ble.broadcast((comando_bt.cor_passageiro, cor.h,cor.s,cor.v))    
+            hub.ble.broadcast((comando_bt.cor_passageiro, cores.Color2cor(cor)))
+        elif comando == comando_bt.ver_hsv_passageiro:
+            print("pediu cor")
+            cor = sensor_cor_frente.hsv()
+            hub.ble.broadcast((comando_bt.hsv_passageiro, cores.Color2tuple(cor)))
         elif comando == comando_bt.ver_distancias:
             print("pediu dist")
             dist_esq, dist_dir = ultra_esq.distance(), ultra_dir.distance()

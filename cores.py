@@ -17,15 +17,21 @@ cor = Enum("cor", ["AMARELO",
 def Color2tuple(color):
     return color.h, color.s, color.v
 
-Color2cor = {
-    Color2tuple(Color.YELLOW): cor.AMARELO,
-    Color2tuple(Color.GREEN ): cor.VERDE, 
-    Color2tuple(Color.BLUE  ): cor.AZUL,
-    Color2tuple(Color.RED   ): cor.VERMELHO,
-    Color2tuple(Color.BROWN ): cor.MARROM,
-    Color2tuple(Color.BLACK ): cor.PRETO,
-    Color2tuple(Color.WHITE ): cor.BRANCO,
-}
+def Color2cor (color):
+    el = {
+           Color2tuple(Color.YELLOW): cor.AMARELO,
+           Color2tuple(Color.GREEN ): cor.VERDE, 
+           Color2tuple(Color.BLUE  ): cor.AZUL,
+           Color2tuple(Color.RED   ): cor.VERMELHO,
+           Color2tuple(Color.BROWN ): cor.MARROM,
+           Color2tuple(Color.BLACK ): cor.PRETO,
+           Color2tuple(Color.WHITE ): cor.BRANCO,
+         }.get(Color2tuple(color))
+    if el is None:
+        print(f"cor inválida: {Color2tuple(color)}")
+        return cor.NENHUMA
+    else:
+        return el
 
 cor2Color = [
     Color.YELLOW,
@@ -119,7 +125,8 @@ def identificar_por_intervalo_hsv(hsv) -> cor: # type: ignore
 def identificar(color) -> cor: # type: ignore
     try:
         return identificar_por_intervalo_hsv(color)
-    except TypeError:
+    except TypeError as e:
+        print(f"cores.identificar: {e}")
         hsv = color.h, color.s, color.v
         return identificar_por_intervalo_hsv(hsv)
 
@@ -132,13 +139,13 @@ def parede_unificado(color, hsv):
              (color == Color.NONE ) or
              (color == Color.YELLOW))
 
-    combinado = (((color == Color.RED) or
-                  (color == Color.BLUE)) and
-                 ((identificar(hsv) == cor.PRETO) or
-                  (identificar(hsv) == cor.BRANCO) or
-                  (identificar(hsv) == cor.NENHUMA)))
-
-    return deles or combinado
+    #combinado = (((color == Color.RED) or
+    #              (color == Color.BLUE)) and
+    #             ((identificar(hsv) == cor.PRETO) or
+    #              (identificar(hsv) == cor.BRANCO) or
+    #              (identificar(hsv) == cor.NENHUMA)))
+    #! checar se não precisa desse combinado mesmo
+    return deles #or combinado
 
 def beco_unificado(color, hsv):
     deles = (color == Color.RED)

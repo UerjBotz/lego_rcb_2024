@@ -135,7 +135,7 @@ def mostrar_palavra(hub, nome):
 def tela_escolher_cor(hub, enum_cor, selecao, intervalo_anim=110, intervalo_botao=100):
     cor = enum_cor(selecao)
     sw = StopWatch()
-    
+
     for _ in mostrar_palavra(hub, cor):
         sw.reset()
         hub.light.on(cor2Color[selecao])
@@ -143,5 +143,5 @@ def tela_escolher_cor(hub, enum_cor, selecao, intervalo_anim=110, intervalo_bota
             wait(intervalo_botao)
             botoes = hub.buttons.pressed()
             if botoes: return botoes
-    
+
     return {}
