@@ -29,10 +29,15 @@ DIST_EIXO_SENS_DIST = 45 #mm   #! checar
 
 DIST_PASSAGEIRO_RUA = 220 #! checar
 
+#! checar stall: jogar exceção
+#! checar cor errada no azul
+#! tem um lugar começo do achar azul que tem que dar ré
 
 def setup():
-    global hub, rodas, sensor_cor_esq, sensor_cor_dir, sensor_ultra_esq, sensor_ultra_dir
-    global botao_calibrar, rodas_conf_padrao, vels_padrao, ori
+    global hub, rodas
+    global sensor_cor_esq, sensor_cor_dir, sensor_ultra_esq, sensor_ultra_dir
+    global botao_calibrar, ori
+    global rodas_conf_padrao, vels_padrao, vel_padrao, vel_ang_padrao #! fazer um dicionário e concordar com mudar_velocidade
     
     ori = ""
     hub = PrimeHub(broadcast_channel=blt.TX_CABECA, observe_channels=[blt.TX_BRACO])
@@ -59,8 +64,11 @@ def setup():
                       wheel_diameter=88, axle_track=145.5) #! ver depois se recalibrar
 
     botao_calibrar = Button.CENTER
-    rodas_conf_padrao = rodas.settings()
-    vels_padrao = rodas_conf_padrao[0], rodas_conf_padrao[2]
+
+    rodas_conf_padrao = rodas.settings() #! CONSTANTIZAR
+    vel_padrao =     rodas_conf_padrao[0]
+    vel_ang_padrao = rodas_conf_padrao[2]
+    vels_padrao = vels_padrao, vel_ang_padrao
 
     return hub
 
@@ -255,11 +263,12 @@ def achar_azul() -> bool:
 
         if cores.certificar(sensor_cor_esq, sensor_cor_dir, cores.azul_unificado):
             print("achar_azul: azul mesmo")
+            dar_re(TAM_BLOCO_BECO*3//8)
             return True
         else:
             print("achar_azul: não azul")
             dar_re_meio_bloco()
-            virar_direita()
+            choice((virar_direita, virar_esquerda))() #!
             return False
 
 def alinha_parede(vel, vel_ang, giro_max=45) -> bool:
@@ -420,9 +429,9 @@ def seguir_caminho(pos, obj, ori): #! lidar com outras coisas
 
     movs, ori_final = achar_movimentos(pos, obj, ori)
     #print(*(tipo_movimento(mov) for mov in movs))
+
     for _ in interpretar_caminho(movs):
-        while not rodas.done():
-            pass
+        while not rodas.done(): pass
         
     while ori != ori_final:
         virar_direita()

@@ -263,7 +263,9 @@ def a_estrela(grid, src, dest):
 
 #funcao que recebe lista de posicoes na matriz e transforma em lista de direcoes
 def caminho_relativo(caminho_absoluto: list[tuple[int, int]]):
-    if caminho_absoluto is None: print("Caminho Errado")
+    if caminho_absoluto is None:
+        caminho_absoluto = []
+        print("Caminho Errado")
 
     #movimentos
     direita = (0, 1); baixo = (1, 0); esquerda = (0, -1); cima = (-1, 0)
@@ -283,7 +285,7 @@ def caminho_relativo(caminho_absoluto: list[tuple[int, int]]):
         elif dx == -1 and dy == 0:
             direcoes.append(cima)
 
-    return direcoes
+    return direcoes #! checar no chamador se é vazio
 
 #orientação = N | S | L | O
 tipo_movimento = Enum("tipo_movimento",
@@ -330,44 +332,31 @@ def movimento_relativo(relativo, orientacao):
 def achar_movimentos(pos_ini, pos_fim, orientacao):
     lin, col = pos_fim
     
-    indice = next((i for i, valor in enumerate(mapa[lin][col]) if valor == tipo_parede.ENTRADA), None)
+    try: #! checar se precisa (se sim, resolver)
+        indice = next((i for i, valor in enumerate(mapa[lin][col].paredes) if valor == tipo_parede.ENTRADA))
+    except Exception as e: #!
+        print(e)
+        indice = None
+
     if indice is None:
         print("Não há entradas disponíveis")
         return []
     
     orientacao_final = None
-    if posicao_parede(indice) == posicao_parede.NORTE:
+    if posicao_parede(indice) == posicao_parede.N:
         pos_fim = pos_fim[lin+1][col]
         orientacao_final = "S"
-    elif posicao_parede(indice) == posicao_parede.SUL:
+    elif posicao_parede(indice) == posicao_parede.S:
         pos_fim = pos_fim[lin-1][col]
         orientacao_final = "N"
-    elif posicao_parede(indice) == posicao_parede.LESTE:
+    elif posicao_parede(indice) == posicao_parede.L:
         pos_fim = pos_fim[lin][col+1]
         orientacao_final = "O"
-    elif posicao_parede(indice) == posicao_parede.OESTE:
+    elif posicao_parede(indice) == posicao_parede.O:
         pos_fim = pos_fim[lin][col-1]
         orientacao_final = "L"
-    
     
     caminho     = a_estrela(mapa, pos_ini, pos_fim)
     caminho_rel = caminho_relativo(caminho)
 
-    return (movimento_relativo(caminho_rel, orientacao), orientacao_final)
-
-
-# if __name__ == "__main__":
-#     pos_inicial = (1, 1)
-#     pos_final   = (4, 3)
-
-#     print("Mapa Original:")
-#     imprime_matriz(mapa)
-#     coloca_obstaculo(2, 3)
-#     print("\nMapa com obstáculo:")
-#     imprime_matriz(mapa)
-    
-#     resultado = a_estrela(mapa, pos_inicial, pos_final)
-#     print(resultado)
-    
-#     print("Movimento relativo: "+ movimento_relativo(caminho_relativo(resultado), "N"))
-    
+    return (movimento_relativo(caminho_rel, orientacao), orientacao_final) #! tratar orientação final None e caminho vazio no chamador

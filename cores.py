@@ -139,13 +139,13 @@ def parede_unificado(color, hsv):
              (color == Color.NONE ) or
              (color == Color.YELLOW))
 
-    #combinado = (((color == Color.RED) or
-    #              (color == Color.BLUE)) and
-    #             ((identificar(hsv) == cor.PRETO) or
-    #              (identificar(hsv) == cor.BRANCO) or
-    #              (identificar(hsv) == cor.NENHUMA)))
-    #! checar se não precisa desse combinado mesmo
-    return deles #or combinado
+    combinado = (((color == Color.RED) or
+                 (color == Color.BLUE)) and
+                ((identificar(hsv) == cor.PRETO) or
+                 (identificar(hsv) == cor.BRANCO) or
+                 (identificar(hsv) == cor.NENHUMA)))
+    #! checar de novo se precisa do combinado
+    return deles or combinado
 
 def beco_unificado(color, hsv):
     deles = (color == Color.RED)
